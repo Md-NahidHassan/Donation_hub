@@ -80,7 +80,7 @@ function ItemDetailsContent() {
 
       // 2. Fetch from backend
       try {
-        const res = await fetch(`http://127.0.0.1:8080/api/resources/${itemId}`);
+        const res = await fetch(`http://localhost:8080/api/resources/${itemId}`);
         if (res.ok) {
           const data = await res.json();
 
@@ -88,7 +88,7 @@ function ItemDetailsContent() {
           let downloadUrl = safeFileName ? `/api/resources/download/${safeFileName}` : data.downloadUrl;
 
           if (downloadUrl && downloadUrl.startsWith("/")) {
-            downloadUrl = `http://127.0.0.1:8080${downloadUrl}`;
+            downloadUrl = `http://localhost:8080${downloadUrl}`;
           }
 
           setItem({
@@ -106,7 +106,7 @@ function ItemDetailsContent() {
             : `viewed_${type}_${itemId}_guest`;
 
           if (!localStorage.getItem(viewKey)) {
-            fetch(`http://127.0.0.1:8080/api/resources/view/${type}/${itemId}`, { method: 'PUT' })
+            fetch(`http://localhost:8080/api/resources/view/${type}/${itemId}`, { method: 'PUT' })
               .then(async (vRes) => {
                 if (vRes.ok) {
                     localStorage.setItem(viewKey, "true");
@@ -129,7 +129,7 @@ function ItemDetailsContent() {
 
     async function fetchComments() {
       try {
-        const res = await fetch(`http://127.0.0.1:8080/api/comments/ACADEMIC/${itemId}`);
+        const res = await fetch(`http://localhost:8080/api/comments/ACADEMIC/${itemId}`);
         if (res.ok) {
           const data = await res.json();
           setComments(data);
@@ -141,7 +141,7 @@ function ItemDetailsContent() {
 
     async function fetchUserReaction(email) {
         try {
-            const res = await fetch(`http://127.0.0.1:8080/api/resources/react/status/ACADEMIC/${itemId}/${email}`);
+            const res = await fetch(`http://localhost:8080/api/resources/react/status/ACADEMIC/${itemId}/${email}`);
             if (res.ok) {
                 const text = await res.text();
                 if (text) {
@@ -166,7 +166,7 @@ function ItemDetailsContent() {
     if (!newComment.trim() || !user) return;
 
     try {
-      const res = await fetch("http://127.0.0.1:8080/api/comments/add", {
+      const res = await fetch("http://localhost:8080/api/comments/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -195,7 +195,7 @@ function ItemDetailsContent() {
     const type = "ACADEMIC";
 
     try {
-      const res = await fetch(`http://127.0.0.1:8080/api/resources/react/${type}/${itemId}/${reactionType}/${user.email}`, {
+      const res = await fetch(`http://localhost:8080/api/resources/react/${type}/${itemId}/${reactionType}/${user.email}`, {
         method: "PUT"
       });
 
@@ -228,7 +228,7 @@ function ItemDetailsContent() {
     let finalUrl = item.downloadUrl || (item.fileName ? `/api/resources/download/${item.fileName}` : null);
 
     if (finalUrl && finalUrl.startsWith("/")) {
-      finalUrl = `http://127.0.0.1:8080${finalUrl}`;
+      finalUrl = `http://localhost:8080${finalUrl}`;
     }
 
     if (!finalUrl) {
@@ -473,7 +473,7 @@ function ItemDetailsContent() {
                                onClick={async () => {
                                  if(confirm("Delete this comment?")) {
                                    try {
-                                     const res = await fetch(`http://127.0.0.1:8080/api/comments/${comm.id}`, { method: 'DELETE' });
+                                     const res = await fetch(`http://localhost:8080/api/comments/${comm.id}`, { method: 'DELETE' });
                                      if (res.ok) {
                                        setComments(comments.filter(c => c.id !== comm.id));
                                      }

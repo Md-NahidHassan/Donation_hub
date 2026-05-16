@@ -6,7 +6,7 @@ import {
   Clock, Target, Share2, QrCode, ArrowLeft, Heart,
   Calendar, Users, TrendingUp, Zap, X, Copy, Check,
   Building2, Smartphone, Package, Coins, Link2, ExternalLink,
-  CreditCard, ArrowRight, MessageSquare, Send, User, Reply, Trash2, MessageCircle
+  CreditCard, ArrowRight, MessageSquare, Send, User, Reply, Trash2, MessageCircle, AlertCircle
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -79,13 +79,35 @@ function CampaignDetailsContent() {
     try { localStorage.setItem(`ecoKnot_endTime_${campaignId}`, String(endTimeMs)); } catch { }
   };
 
-  // Initial User Load
   useEffect(() => {
     const userStr = localStorage.getItem("user");
-    if (userStr) {
-      setUser(JSON.parse(userStr));
-    }
+    if (userStr) setUser(JSON.parse(userStr));
   }, []);
+
+  // ── Increment view count once per session on page load ───────────────────
+  useEffect(() => {
+    if (!id) return;
+    const viewKey = `viewed_CAMPAIGN_${id}`;
+    const countKey = `campaign_viewCount_${id}`;
+    const stored = parseInt(localStorage.getItem(countKey) || '0');
+    if (!sessionStorage.getItem(viewKey)) {
+      sessionStorage.setItem(viewKey, 'true');
+      const next = stored + 1;
+      localStorage.setItem(countKey, String(next));
+      setCampaign(prev => prev ? { ...prev, viewCount: next } : prev);
+      fetch(`http://localhost:8080/api/resources/view/CAMPAIGN/${id}`, { method: 'PUT' }).catch(() => {});
+    } else {
+      // Restore stored count on revisit
+      if (stored > 0) setCampaign(prev => prev ? { ...prev, viewCount: stored } : prev);
+    }
+  }, [id]);
+
+  // ── Load user's stored reaction (runs once when id is known) ─────────────
+  useEffect(() => {
+    if (!id) return;
+    const stored = localStorage.getItem(`campaign_reaction_user_${id}`);
+    if (stored) setUserReaction(stored);
+  }, [id]);
 
   useEffect(() => {
     const userStr = localStorage.getItem("user");
@@ -95,7 +117,7 @@ function CampaignDetailsContent() {
       const extra = mockDb.getCampaignExtras(data.title) || {};
       let imageUrl = extra.image || data.image || data.imagePath;
       if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('blob:') && !imageUrl.startsWith('data:')) {
-        imageUrl = `http://127.0.0.1:8080/${imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl}`;
+        imageUrl = `http://localhost:8080/${imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl}`;
       }
       let progress = data.progress;
       if (progress === undefined || progress === null) {
@@ -112,21 +134,30 @@ function CampaignDetailsContent() {
 
       let endTimeMs = null;
       if (data.endTime) {
-        endTimeMs = new Date(data.endTime).getTime();
-        savePersistedEndTime(campaignKey, endTimeMs);
-      } else {
-        endTimeMs = getPersistedEndTime(campaignKey);
-        if (!endTimeMs) {
-          if (data.createdAt) {
-            endTimeMs = new Date(data.createdAt).getTime() + (actualDuration * 86400000);
-          } else {
-            endTimeMs = Date.now() + (actualDuration * 86400000);
-          }
+        const parsedMs = new Date(data.endTime).getTime();
+        if (!isNaN(parsedMs)) {
+          endTimeMs = parsedMs;
           savePersistedEndTime(campaignKey, endTimeMs);
         }
       }
+      if (!endTimeMs) {
+        endTimeMs = getPersistedEndTime(campaignKey);
+        if (!endTimeMs || isNaN(endTimeMs)) {
+          let baseTimeMs = Date.now();
+          if (data.createdAt) {
+            const createdMs = new Date(data.createdAt).getTime();
+            if (!isNaN(createdMs)) baseTimeMs = createdMs;
+          }
+          endTimeMs = baseTimeMs + (actualDuration * 86400000);
+          savePersistedEndTime(campaignKey, endTimeMs);
+        }
+      }
+      const actualEndTime = isNaN(endTimeMs) ? new Date(Date.now() + (actualDuration * 86400000)).toISOString() : new Date(endTimeMs).toISOString();
 
-      const actualEndTime = new Date(endTimeMs).toISOString();
+      // ── Merge localStorage reaction counts so they survive re-fetches ──────
+      const cId = data.id?.toString() || id || '';
+      const storedReactions = JSON.parse(localStorage.getItem(`campaign_reactions_${cId}`) || '{}');
+      const storedViewCount = parseInt(localStorage.getItem(`campaign_viewCount_${cId}`) || '0');
 
       return {
         ...data,
@@ -135,6 +166,11 @@ function CampaignDetailsContent() {
         duration: actualDuration,
         endTime: actualEndTime,
         goal: extra.goal || data.goal,
+        // Prefer localStorage counts over backend (localStorage is source of truth for reactions/views)
+        likeCount: storedReactions.LIKE ?? data.likeCount ?? 0,
+        loveCount: storedReactions.LOVE ?? data.loveCount ?? 0,
+        sadCount: storedReactions.SAD ?? data.sadCount ?? 0,
+        viewCount: Math.max(storedViewCount, data.viewCount || 0),
         paymentQRs: (extra.paymentQRs && extra.paymentQRs.length > 0)
           ? extra.paymentQRs
           : (typeof data.paymentQRs === 'string' ? JSON.parse(data.paymentQRs) : (data.paymentQRs || [])),
@@ -145,17 +181,12 @@ function CampaignDetailsContent() {
     };
 
     const fetchCampaign = async () => {
-      const res = await fetch(`http://127.0.0.1:8080/api/campaigns/${id}`).catch(() => null);
+      const res = await fetch(`http://localhost:8080/api/campaigns/${id}`).catch(() => null);
       if (res && res.ok) {
         const data = await res.json().catch(() => null);
-        if (data) {
-          setCampaign(transform(data));
-
-          return;
-        }
+        if (data) { setCampaign(transform(data)); return; }
       }
-
-      const allRes = await fetch("http://127.0.0.1:8080/api/campaigns").catch(() => null);
+      const allRes = await fetch("http://localhost:8080/api/campaigns").catch(() => null);
       if (allRes && allRes.ok) {
         const all = await allRes.json().catch(() => null);
         if (all) {
@@ -163,80 +194,33 @@ function CampaignDetailsContent() {
           if (found) { setCampaign(transform(found)); return; }
         }
       }
-
       const mockAll = mockDb.getCampaigns();
       const mockFound = mockAll.find(c => c.id?.toString() === id) || mockAll[0];
-      if (mockFound) setCampaign(mockFound);
+      if (mockFound) setCampaign(transform(mockFound));
     };
 
     const fetchComments = async () => {
       try {
-        const res = await fetch(`http://127.0.0.1:8080/api/comments/CAMPAIGN/${id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setComments(data);
-        }
+        const res = await fetch(`http://localhost:8080/api/comments/CAMPAIGN/${id}`);
+        if (res.ok) setComments(await res.json());
       } catch (err) { console.error("Error fetching comments:", err); }
-    };
-
-    const fetchUserReaction = async (email) => {
-      try {
-        const res = await fetch(`http://127.0.0.1:8080/api/resources/react/status/CAMPAIGN/${id}/${email}`);
-        if (res.ok) {
-          const text = await res.text();
-          if (text) {
-            const data = JSON.parse(text);
-            setUserReaction(data?.reactionType || null);
-          } else {
-            setUserReaction(null);
-          }
-        }
-      } catch (err) { console.error("Error fetching reaction status:", err); }
     };
 
     if (id) {
       fetchCampaign();
       fetchComments();
     }
-  }, [id, user]);
+  }, [id]);  // ← Only re-fetch when id changes, NOT when user changes
 
-  // Separate Effect for Reactions and Views (depends on campaign.id)
+  // Load reactions & views from localStorage (works without login / backend)
   useEffect(() => {
     if (!campaign?.id) return;
+    const campaignId = campaign.id.toString();
 
-    const campaignId = campaign.id;
-    const email = user?.email;
-
-    // 1. Fetch User Reaction (Only if logged in)
-    async function fetchUserReaction() {
-      if (!email) return;
-      try {
-        const res = await fetch(`http://127.0.0.1:8080/api/resources/react/status/CAMPAIGN/${campaignId}/${email}`);
-        if (res.ok) {
-          const text = await res.text();
-          setUserReaction(text ? JSON.parse(text)?.reactionType : null);
-        }
-      } catch (err) { console.error(err); }
-    }
-    fetchUserReaction();
-
-    // 2. Increment View Count
-    const viewKey = email
-      ? `viewed_CAMPAIGN_${campaignId}_${email}`
-      : `viewed_CAMPAIGN_${campaignId}_guest`;
-
-    if (!localStorage.getItem(viewKey)) {
-      fetch(`http://127.0.0.1:8080/api/resources/view/CAMPAIGN/${campaignId}`, { method: 'PUT' })
-        .then(async (vRes) => {
-          if (vRes.ok) {
-            localStorage.setItem(viewKey, "true");
-            const updatedData = await vRes.json();
-            setCampaign(prev => ({ ...prev, viewCount: updatedData.viewCount }));
-          }
-        })
-        .catch(err => console.error("Error incrementing view:", err));
-    }
-  }, [campaign?.id, user]);
+    // Restore user reaction from localStorage
+    const storedUserReaction = localStorage.getItem(`campaign_reaction_user_${campaignId}`);
+    if (storedUserReaction) setUserReaction(storedUserReaction);
+  }, [campaign?.id]);
 
   useEffect(() => {
     if (campaign && campaign.sslCommerzEnabled === false && donateTab === "online") {
@@ -280,7 +264,7 @@ function CampaignDetailsContent() {
     setIsProcessing(true);
 
     try {
-      const response = await fetch(`http://127.0.0.1:8080/api/payments/init?campaignId=${id}&amount=${donationAmount}`, {
+      const response = await fetch(`http://localhost:8080/api/payments/init?campaignId=${id}&amount=${donationAmount}`, {
         method: "POST",
       });
 
@@ -303,7 +287,7 @@ function CampaignDetailsContent() {
     if (!newComment.trim() || !user) return;
 
     try {
-      const res = await fetch("http://127.0.0.1:8080/api/comments/add", {
+      const res = await fetch("http://localhost:8080/api/comments/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -323,31 +307,46 @@ function CampaignDetailsContent() {
     } catch (err) { console.error("Error posting comment:", err); }
   };
 
-  const handleReact = async (reactionType) => {
-    if (!user || !id) return;
-    try {
-      const res = await fetch(`http://127.0.0.1:8080/api/resources/react/CAMPAIGN/${id}/${reactionType}/${user.email}`, {
-        method: "PUT"
-      });
+  const handleReact = (reactionType) => {
+    // Always use URL `id` as the stable storage key
+    const storageKey = `campaign_reactions_${id}`;
+    const userKey = `campaign_reaction_user_${id}`;
 
-      if (res.ok) {
-        const updatedCampaign = await res.json();
-        // Update local state while preserving transform logic
-        setCampaign(prev => ({
-          ...prev,
-          likeCount: updatedCampaign.likeCount,
-          loveCount: updatedCampaign.loveCount,
-          sadCount: updatedCampaign.sadCount,
-          viewCount: updatedCampaign.viewCount
-        }));
+    const stored = JSON.parse(
+      localStorage.getItem(storageKey) ||
+      JSON.stringify({ LIKE: campaign?.likeCount || 0, LOVE: campaign?.loveCount || 0, SAD: campaign?.sadCount || 0 })
+    );
+    const currentUserReaction = localStorage.getItem(userKey);
 
-        if (userReaction === reactionType) {
-          setUserReaction(null);
-        } else {
-          setUserReaction(reactionType);
-        }
+    if (currentUserReaction === reactionType) {
+      // Toggle off
+      stored[reactionType] = Math.max(0, (stored[reactionType] || 0) - 1);
+      localStorage.removeItem(userKey);
+      setUserReaction(null);
+    } else {
+      // Remove old reaction if switching
+      if (currentUserReaction && stored[currentUserReaction] !== undefined) {
+        stored[currentUserReaction] = Math.max(0, (stored[currentUserReaction] || 0) - 1);
       }
-    } catch (err) { console.error("Error reacting:", err); }
+      stored[reactionType] = (stored[reactionType] || 0) + 1;
+      localStorage.setItem(userKey, reactionType);
+      setUserReaction(reactionType);
+    }
+
+    localStorage.setItem(storageKey, JSON.stringify(stored));
+    setCampaign(prev => ({
+      ...prev,
+      likeCount: stored.LIKE || 0,
+      loveCount: stored.LOVE || 0,
+      sadCount: stored.SAD || 0,
+    }));
+
+    // Non-blocking backend sync
+    if (user?.email) {
+      fetch(`http://localhost:8080/api/resources/react/CAMPAIGN/${id}/${reactionType}/${user.email}`, {
+        method: 'PUT'
+      }).catch(() => {});
+    }
   };
 
   let qrUrl = null;
@@ -358,7 +357,7 @@ function CampaignDetailsContent() {
   } else if (campaign && (campaign.qrCode || campaign.qrCodeImage)) {
     const backendQr = campaign.qrCode || campaign.qrCodeImage;
     if (!backendQr.startsWith('http') && !backendQr.startsWith('blob:') && !backendQr.startsWith('data:')) {
-      qrUrl = `http://127.0.0.1:8080/${backendQr.startsWith('/') ? backendQr.slice(1) : backendQr}`;
+      qrUrl = `http://localhost:8080/${backendQr.startsWith('/') ? backendQr.slice(1) : backendQr}`;
     } else {
       qrUrl = backendQr;
     }
@@ -372,8 +371,26 @@ function CampaignDetailsContent() {
     </div>
   );
 
+  const isActuallyExpired = isExpired || (campaign && mockDb.isCampaignExpired(campaign));
+
+  // If campaign is expired, block access to details
+  if (isActuallyExpired && campaign) {
+    return (
+      <div className="flex flex-col min-h-screen font-sans bg-gradient-to-b from-[#f2faf6] via-[#fbf8f3] to-[#fff3ec] items-center justify-center p-6">
+        <div className="text-center p-10 bg-white/60 backdrop-blur-xl rounded-[2.5rem] shadow-xl border border-white max-w-md w-full">
+          <AlertCircle className="w-16 h-16 text-rose-500 mx-auto mb-6 opacity-80" />
+          <h1 className="text-3xl font-black text-slate-800 mb-4 tracking-tight">Campaign Ended</h1>
+          <p className="text-slate-500 font-medium mb-8 leading-relaxed">This campaign's duration has expired and it is no longer available for public viewing or donations.</p>
+          <Link href="/public-campaigns" className="flex items-center justify-center gap-2 w-full py-4 bg-uiu-emerald hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 text-white font-black rounded-2xl transition-all hover:scale-105 active:scale-95">
+             <ArrowLeft className="w-5 h-5" /> Back to Campaigns
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen font-sans bg-[#fbfcfb] relative overflow-hidden">
+    <div className="flex flex-col min-h-screen font-sans bg-gradient-to-b from-[#f2faf6] via-[#fbf8f3] to-[#fff3ec] relative overflow-x-hidden">
       {/* BACKGROUND */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[-5%] w-[45vw] h-[45vw] bg-uiu-emerald/10 blur-[130px] rounded-full animate-pulse" />
@@ -534,7 +551,7 @@ function CampaignDetailsContent() {
                               onClick={async () => {
                                 if (confirm("Delete this comment?")) {
                                   try {
-                                    const res = await fetch(`http://127.0.0.1:8080/api/comments/${comm.id}`, { method: 'DELETE' });
+                                    const res = await fetch(`http://localhost:8080/api/comments/${comm.id}`, { method: 'DELETE' });
                                     if (res.ok) {
                                       setComments(comments.filter(c => c.id !== comm.id));
                                     }

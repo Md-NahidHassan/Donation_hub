@@ -240,7 +240,7 @@ export default function CreateCampaignPage() {
     }
 
     try {
-      const res = await fetch("http://127.0.0.1:8080/api/campaigns", {
+      const res = await fetch("http://localhost:8080/api/campaigns", {
         method: "POST",
         body: fd,
       });

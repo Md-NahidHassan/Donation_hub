@@ -69,14 +69,14 @@ export const mockDb = {
 
   deleteCampaign: (id) => {
     const existing = mockDb.getCampaigns();
-    const newList = existing.filter(c => c.id !== id);
+    const newList = existing.filter(c => c.id.toString() !== id.toString());
     localStorage.setItem(KEYS.CAMPAIGNS, JSON.stringify(newList));
     return newList;
   },
 
   updateCampaign: (id, updatedFields) => {
     const existing = mockDb.getCampaigns();
-    const newList = existing.map(c => c.id === id ? { ...c, ...updatedFields } : c);
+    const newList = existing.map(c => c.id.toString() === id.toString() ? { ...c, ...updatedFields } : c);
     localStorage.setItem(KEYS.CAMPAIGNS, JSON.stringify(newList));
     return newList;
   },
@@ -109,14 +109,14 @@ export const mockDb = {
 
   updateItemStatus: (id, status) => {
     const existing = mockDb.getItems();
-    const newList = existing.map(item => item.id === id ? { ...item, status } : item);
+    const newList = existing.map(item => item.id.toString() === id.toString() ? { ...item, status } : item);
     localStorage.setItem(KEYS.ITEMS, JSON.stringify(newList));
     return newList;
   },
 
   deleteItem: (id) => {
     const existing = mockDb.getItems();
-    const newList = existing.filter(item => item.id !== id);
+    const newList = existing.filter(item => item.id.toString() !== id.toString());
     localStorage.setItem(KEYS.ITEMS, JSON.stringify(newList));
     return newList;
   },
@@ -139,7 +139,7 @@ export const mockDb = {
 
   updateUserStatus: (id, status) => {
     const existing = mockDb.getUsers();
-    const newList = existing.map(user => user.id === id ? { ...user, status } : user);
+    const newList = existing.map(user => user.id.toString() === id.toString() ? { ...user, status } : user);
     localStorage.setItem(KEYS.USERS, JSON.stringify(newList));
     return newList;
   },
@@ -147,7 +147,7 @@ export const mockDb = {
   addUser: (user) => {
     const existing = mockDb.getUsers();
     // Avoid duplicates
-    if (existing.some(u => u.id === user.id)) return existing;
+    if (existing.some(u => u.id.toString() === user.id.toString())) return existing;
     const newList = [...existing, { status: "Active", points: 0, ...user }];
     localStorage.setItem(KEYS.USERS, JSON.stringify(newList));
     return newList;

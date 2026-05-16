@@ -52,7 +52,7 @@ export default function AuthPage() {
     setError('');
     const credentials = { email, password };
     try {
-      const response = await fetch("http://127.0.0.1:8080/api/auth/login", {
+      const response = await fetch("http://localhost:8080/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(credentials),
@@ -78,7 +78,7 @@ export default function AuthPage() {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetch("http://127.0.0.1:8080/api/auth/signup", {
+      const response = await fetch("http://localhost:8080/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -241,7 +241,7 @@ export default function AuthPage() {
                       // Step 1: Send email and request OTP
                       try {
                         setIsLoading(true);
-                        const res = await fetch("http://127.0.0.1:8080/api/auth/forgot-password", {
+                        const res = await fetch("http://localhost:8080/api/auth/forgot-password", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ email: resetEmail }),
@@ -269,7 +269,7 @@ export default function AuthPage() {
                       // Step 3: call real backend reset-password endpoint with OTP
                       try {
                         setIsLoading(true);
-                        const res = await fetch("http://127.0.0.1:8080/api/auth/reset-password", {
+                        const res = await fetch("http://localhost:8080/api/auth/reset-password", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ email: resetEmail, otp: resetCode, newPassword }),

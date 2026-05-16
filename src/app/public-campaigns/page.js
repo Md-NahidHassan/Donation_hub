@@ -33,7 +33,7 @@ export default function PublicCampaignsPage() {
       let backendCampaigns = [];
       try {
         setIsLoading(true);
-        const response = await fetch("http://127.0.0.1:8080/api/campaigns");
+        const response = await fetch("http://localhost:8080/api/campaigns");
         if (response.ok) {
           backendCampaigns = await response.json();
         }
@@ -49,7 +49,7 @@ export default function PublicCampaignsPage() {
           
           let imageUrl = extra.image || c.image || c.imagePath;
           if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('blob:') && !imageUrl.startsWith('data:')) {
-            imageUrl = `http://127.0.0.1:8080/${imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl}`;
+            imageUrl = `http://localhost:8080/${imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl}`;
           }
 
           let goal = extra.goal || c.goal || 0;
@@ -98,16 +98,16 @@ export default function PublicCampaignsPage() {
 
         const combined = [...mappedBackend, ...uniqueMock];
 
-        // ── SORT instead of FILTER ──────────────────────────────────────────
-        // This ensures you ALWAYS see your campaigns, even if they are marked expired.
-        // We put active campaigns at the top.
-        const sorted = combined.sort((a, b) => {
-          const aExp = mockDb.isCampaignExpired(a);
-          const bExp = mockDb.isCampaignExpired(b);
-          if (aExp === bExp) return 0;
-          return aExp ? 1 : -1;
+        // ── FILTER out expired campaigns ──────────────────────────────────────
+        const activeCampaigns = combined.filter(c => {
+          // If daysLeft is missing or NaN, assume it's new/active if we have no endTime
+          if (isNaN(c.daysLeft)) return true;
+          return c.daysLeft > 0;
         });
 
+        console.log("Active campaigns found:", activeCampaigns.length);
+
+        const sorted = activeCampaigns.sort((a, b) => (a.daysLeft || 0) - (b.daysLeft || 0));
         setCampaigns(sorted);
         setIsLoading(false);
       }
@@ -309,6 +309,21 @@ export default function PublicCampaignsPage() {
                       Join <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
                     </Link>
                   </div>
+
+                  {/* Reaction mini-bar */}
+                  {(() => {
+                    if (typeof window === 'undefined') return null;
+                    const r = JSON.parse(localStorage.getItem(`campaign_reactions_${campaign.id}`) || '{"LIKE":0,"LOVE":0,"SAD":0}');
+                    const total = (r.LIKE || 0) + (r.LOVE || 0) + (r.SAD || 0);
+                    if (total === 0) return null;
+                    return (
+                      <div className="flex items-center gap-3 pt-3 border-t border-slate-100/30">
+                        {r.LIKE > 0 && <span className="text-[11px] font-black text-slate-400">👍 {r.LIKE}</span>}
+                        {r.LOVE > 0 && <span className="text-[11px] font-black text-slate-400">❤️ {r.LOVE}</span>}
+                        {r.SAD > 0 && <span className="text-[11px] font-black text-slate-400">😢 {r.SAD}</span>}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </motion.div>

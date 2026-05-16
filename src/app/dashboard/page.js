@@ -67,7 +67,7 @@ function DashboardContent() {
     const fetchUserStats = async () => {
       const email = localStorage.getItem("userEmail") || "nhassan231467@bscse.uiu.ac.bd";
       try {
-        const res = await fetch(`http://127.0.0.1:8080/api/settings/${email}`);
+        const res = await fetch(`http://localhost:8080/api/settings/${email}`);
         if (res.ok) {
           const data = await res.json();
           const pts = data.ecoPoints || 0;
@@ -94,13 +94,13 @@ function DashboardContent() {
       let publicBackendItems = [];
       try {
         // Fetch Academic Resources
-        const res = await fetch("http://127.0.0.1:8080/api/resources");
+        const res = await fetch("http://localhost:8080/api/resources");
         if (res.ok) {
           backendItems = await res.json();
         }
 
         // Fetch Public Resources
-        const resPublic = await fetch("http://127.0.0.1:8080/api/public-resources/all");
+        const resPublic = await fetch("http://localhost:8080/api/public-resources/all");
         if (resPublic.ok) {
           publicBackendItems = await resPublic.json();
         }
@@ -171,7 +171,7 @@ function DashboardContent() {
       let backendCampaigns = [];
       try {
         setIsLoadingCampaigns(true);
-        const response = await fetch("http://127.0.0.1:8080/api/campaigns");
+        const response = await fetch("http://localhost:8080/api/campaigns");
         if (response.ok) {
           backendCampaigns = await response.json();
         }
@@ -186,7 +186,7 @@ function DashboardContent() {
           const extra = mockDb.getCampaignExtras(c.title) || mockDb.getCampaignExtras(c.id?.toString()) || {};
           let imageUrl = extra.image || c.image || c.imagePath;
           if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('blob:') && !imageUrl.startsWith('data:')) {
-            imageUrl = `http://127.0.0.1:8080/${imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl}`;
+            imageUrl = `http://localhost:8080/${imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl}`;
           }
           let progress = c.progress;
           if (progress === undefined || progress === null) {
@@ -208,7 +208,16 @@ function DashboardContent() {
           .filter(c => !backendTitles.has(c.title.toLowerCase()))
           .map(c => ({ ...c, _uniqueId: `mock-${c.id}` }));
 
-        const combined = [...mappedBackend, ...uniqueMock].reverse().slice(0, 4);
+        const combined = [...mappedBackend, ...uniqueMock]
+          .filter(c => {
+            // Check if expired using mockDb helper
+            const expired = mockDb.isCampaignExpired(c);
+            return !expired;
+          })
+          .reverse()
+          .slice(0, 4);
+        
+        console.log("Dashboard active campaigns:", combined.length);
         setCampaigns(combined);
         setIsLoadingCampaigns(false);
       }
@@ -266,14 +275,12 @@ function DashboardContent() {
 
   // Sidebar Links Configuration
   const navLinks = [
-    { name: "Home", icon: Home, active: false, href: "/" },
     { name: "Browse Items", icon: Package, active: true, href: "/dashboard" },
     { name: "Messages", icon: MessageCircle, active: false, href: "/chat", badge: hasUnread },
     { name: "My Requests", icon: Activity, active: false, href: "/user-panel" },
     { name: "Academic Resources", icon: GraduationCap, active: false, href: "/academic-resources" },
     { name: "Public Resources", icon: Users2, active: false, href: "/public-resources" },
     { name: "Campaigns", icon: HeartHandshake, active: false, href: "/public-campaigns" },
-    { name: "Admin Control", icon: ShieldCheck, active: false, href: "/admin-panel" },
     { name: "Settings", icon: Settings, active: false, href: "/settings" },
   ];
 

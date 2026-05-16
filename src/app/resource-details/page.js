@@ -52,10 +52,10 @@ function ResourceDetailsContent() {
       try {
         let data = null;
         if (type === "public") {
-          const res = await fetch(`http://127.0.0.1:8080/api/public-resources/${id}`);
+          const res = await fetch(`http://localhost:8080/api/public-resources/${id}`);
           if (res.ok) data = await res.json();
         } else {
-          const res = await fetch(`http://127.0.0.1:8080/api/resources/${id}`);
+          const res = await fetch(`http://localhost:8080/api/resources/${id}`);
           if (res.ok) data = await res.json();
         }
 
@@ -74,7 +74,7 @@ function ResourceDetailsContent() {
             : `viewed_${type}_${id}_guest`;
 
           if (!localStorage.getItem(viewKey)) {
-            fetch(`http://127.0.0.1:8080/api/resources/view/${type}/${id}`, { method: 'PUT' })
+            fetch(`http://localhost:8080/api/resources/view/${type}/${id}`, { method: 'PUT' })
               .then(async (vRes) => {
                 if (vRes.ok) {
                     localStorage.setItem(viewKey, "true");
@@ -95,7 +95,7 @@ function ResourceDetailsContent() {
     async function fetchComments() {
       const type = searchParams.get("type");
       try {
-        const res = await fetch(`http://127.0.0.1:8080/api/comments/${type}/${id}`);
+        const res = await fetch(`http://localhost:8080/api/comments/${type}/${id}`);
         if (res.ok) {
           const data = await res.json();
           setComments(data);
@@ -108,7 +108,7 @@ function ResourceDetailsContent() {
     async function fetchUserReaction(email) {
         const type = searchParams.get("type");
         try {
-            const res = await fetch(`http://127.0.0.1:8080/api/resources/react/status/${type}/${id}/${email}`);
+            const res = await fetch(`http://localhost:8080/api/resources/react/status/${type}/${id}/${email}`);
             if (res.ok) {
                 const text = await res.text();
                 if (text) {
@@ -146,7 +146,7 @@ function ResourceDetailsContent() {
     const type = searchParams.get("type")?.toUpperCase();
 
     try {
-      const res = await fetch("http://127.0.0.1:8080/api/comments/add", {
+      const res = await fetch("http://localhost:8080/api/comments/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -213,7 +213,7 @@ function ResourceDetailsContent() {
     const type = searchParams.get("type")?.toUpperCase();
 
     try {
-      const res = await fetch(`http://127.0.0.1:8080/api/resources/react/${type}/${id}/${reactionType}/${user.email}`, {
+      const res = await fetch(`http://localhost:8080/api/resources/react/${type}/${id}/${reactionType}/${user.email}`, {
         method: "PUT"
       });
 
@@ -441,7 +441,7 @@ function ResourceDetailsContent() {
                               onClick={async () => {
                                 if(confirm("Delete this comment?")) {
                                   try {
-                                    const res = await fetch(`http://127.0.0.1:8080/api/comments/${comm.id}`, { method: 'DELETE' });
+                                    const res = await fetch(`http://localhost:8080/api/comments/${comm.id}`, { method: 'DELETE' });
                                     if (res.ok) {
                                       setComments(comments.filter(c => c.id !== comm.id));
                                     }

@@ -187,14 +187,14 @@ export default function UserPanelPage() {
 
     try {
       // Fetch Academic Resources
-      const resAcademic = await fetch(`http://127.0.0.1:8080/api/resources/user/${encodeURIComponent(currentUserName)}`);
+      const resAcademic = await fetch(`http://localhost:8080/api/resources/user/${encodeURIComponent(currentUserName)}`);
       let academicItems = [];
       if (resAcademic.ok) {
         academicItems = await resAcademic.json();
       }
 
       // Fetch Public Resources
-      const resPublic = await fetch(`http://127.0.0.1:8080/api/public-resources/all`);
+      const resPublic = await fetch(`http://localhost:8080/api/public-resources/all`);
       let publicItems = [];
       if (resPublic.ok) {
         const allPublic = await resPublic.json();
@@ -205,7 +205,7 @@ export default function UserPanelPage() {
       // Combine and Separate: Approved → Posts, Pending+Rejected → Requests
       const userItems = [...academicItems, ...publicItems];
 
-      const approvedItems = userItems.filter(it => it.status === "Approved").map(it => ({
+      const approvedItems = userItems.filter(it => it.status?.toLowerCase() === "approved").map(it => ({
         ...it,
         statusStyle: "text-uiu-emerald bg-emerald-50 border-emerald-200",
         indicator: "bg-uiu-emerald",
@@ -214,14 +214,14 @@ export default function UserPanelPage() {
       setMyPosts(approvedItems);
 
       const pendingOrRejected = userItems
-        .filter(it => it.status === "Pending" || it.status === "Rejected")
+        .filter(it => it.status?.toLowerCase() === "pending" || it.status?.toLowerCase() === "rejected")
         .map(it => ({
           ...it,
-          statusStyle: it.status === "Pending"
+          statusStyle: it.status?.toLowerCase() === "pending"
             ? "text-amber-600 bg-amber-50 border-amber-200"
             : "text-rose-600 bg-rose-50 border-rose-200",
-          indicator: it.status === "Pending" ? "bg-amber-500" : "bg-rose-500",
-          icon: it.status === "Pending"
+          indicator: it.status?.toLowerCase() === "pending" ? "bg-amber-500" : "bg-rose-500",
+          icon: it.status?.toLowerCase() === "pending"
             ? <Clock className="w-5 h-5 text-amber-500" />
             : <XCircle className="w-5 h-5 text-rose-500" />
         }));
@@ -271,8 +271,8 @@ export default function UserPanelPage() {
       resourceCondition: newItem.condition, // Backend uses resourceCondition
       description: newItem.description,
       postedBy: user.fullName,
-      status: "Pending",
-      type: "academic"
+      postedByEmail: user.email,
+      status: "Pending"
     };
 
     const formData = new FormData();
@@ -282,7 +282,7 @@ export default function UserPanelPage() {
     }
 
     try {
-      const res = await fetch("http://127.0.0.1:8080/api/resources", {
+      const res = await fetch("http://localhost:8080/api/resources", {
         method: "POST",
         body: formData,
       });
@@ -337,7 +337,7 @@ export default function UserPanelPage() {
 
     setIsSubmittingPublic(true);
     try {
-      const response = await fetch("http://127.0.0.1:8080/api/public-resources/post", {
+      const response = await fetch("http://localhost:8080/api/public-resources/post", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(resource)
@@ -364,7 +364,7 @@ export default function UserPanelPage() {
   const handleDelete = async (id) => {
     if (confirm("Are you sure you want to delete this post?")) {
       try {
-        const res = await fetch(`http://127.0.0.1:8080/api/resources/${id}`, {
+        const res = await fetch(`http://localhost:8080/api/resources/${id}`, {
           method: "DELETE"
         });
         if (res.ok) {
@@ -780,7 +780,7 @@ export default function UserPanelPage() {
             <div className="flex flex-col gap-4">
               {myRequests.length > 0 ? myRequests.map((req) => (
                 <div key={req.id} className="bg-white/40 backdrop-blur-xl border border-white rounded-[1.5rem] p-6 shadow-sm">
-                  {req.status === "Rejected" ? (
+                  {req.status?.toLowerCase() === "rejected" ? (
                     <>
                       <p className="text-[10px] font-black uppercase tracking-widest text-rose-400 mb-2 italic">Admin Decision</p>
                       <h4 className="text-xl font-black text-slate-800 mb-4">{req.title}</h4>

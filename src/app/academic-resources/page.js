@@ -173,7 +173,7 @@ export default function AcademicResourcesPage() {
   });
   const isLoadingData = useRef(false);
 
-  const API_BASE_URL = "http://127.0.0.1:8080/api/resources";
+  const API_BASE_URL = "http://localhost:8080/api/resources";
 
   // ── load data ──────────────────────────────────────────────────────
   const loadData = async () => {
@@ -261,6 +261,7 @@ export default function AcademicResourcesPage() {
         description: newItem.description,
         postedBy: user.fullName,
         postedByEmail: user.email,
+        status: "Pending",
         icon: "BookOpen",
         color: "from-uiu-emerald/20 to-teal-500/20"
       };
@@ -318,18 +319,17 @@ export default function AcademicResourcesPage() {
     }
   };
 
-  // ── filtered items ─────────────────────────────────────────────────
   const displayed = allItems.filter((it) => {
     const matchSearch = it.title.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === "All" || it.status === filter;
+    const matchFilter = filter === "All" || it.status?.toLowerCase() === filter.toLowerCase();
     return matchSearch && matchFilter;
   });
 
   const counts = {
     All:      allItems.length,
-    Approved: allItems.filter(i => i.status === "Approved").length,
-    Pending:  allItems.filter(i => i.status === "Pending").length,
-    Rejected: allItems.filter(i => i.status === "Rejected").length,
+    Approved: allItems.filter(i => i.status?.toLowerCase() === "approved").length,
+    Pending:  allItems.filter(i => i.status?.toLowerCase() === "pending").length,
+    Rejected: allItems.filter(i => i.status?.toLowerCase() === "rejected").length,
   };
 
   // ── render ─────────────────────────────────────────────────────────
@@ -619,16 +619,15 @@ export default function AcademicResourcesPage() {
                         {/* Status pill */}
                         <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border w-max mb-4 ${sSt}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${cond.dot}`} />
-                          {item.status === "Approved" ? "Live in Marketplace" : item.status}
+                          {item.status?.toLowerCase() === "approved" ? "Live in Marketplace" : item.status}
                         </div>
 
                         <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mb-4 flex items-center gap-1.5">
                           <Clock className="w-3 h-3" /> Posted: {item.postedDate || "Recent"}
                         </p>
 
-                        {/* Actions */}
                         <div className="mt-auto flex gap-2">
-                          {item.status === "Approved" ? (
+                          {item.status?.toLowerCase() === "approved" ? (
                             <Link href={`/item-details?id=${item.id}`}
                               className="flex-1 py-3 rounded-xl font-black text-white text-sm bg-uiu-emerald hover:bg-emerald-600 shadow-md transition-all flex items-center justify-center gap-1.5">
                               View Item <ArrowUpRight className="w-3.5 h-3.5" />
@@ -636,7 +635,7 @@ export default function AcademicResourcesPage() {
                           ) : (
                             <button disabled
                               className="flex-1 py-3 rounded-xl font-black text-slate-400 text-sm bg-slate-50 border border-slate-100 cursor-not-allowed flex items-center justify-center gap-1.5">
-                              {item.status === "Pending"
+                              {item.status?.toLowerCase() === "pending"
                                 ? <><Clock className="w-3.5 h-3.5 animate-pulse" /> Pending</>
                                 : <><XCircle className="w-3.5 h-3.5 text-rose-400" /> Rejected</>}
                             </button>

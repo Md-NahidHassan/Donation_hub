@@ -28,7 +28,7 @@ const publicCategories = [
   "Electronics", "Books", "Furniture", "Stationery", "Clothing", "Sports", "Others"
 ];
 
-const API = "http://127.0.0.1:8080/api/public-resources";
+const API = "http://localhost:8080/api/public-resources";
 
 export default function PublicResourcesPage() {
   const [isMounted,    setIsMounted]    = useState(false);

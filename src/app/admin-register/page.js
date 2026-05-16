@@ -248,7 +248,7 @@ export default function AdminRegisterPage() {
 
         {/* LOGIN LINK */}
         <div className="mt-10 text-slate-500 font-black text-sm">
-          Already an Admin? <Link href="/admin-panel" className="text-uiu-orange hover:text-orange-600 hover:underline transition-all decoration-2 underline-offset-4 ml-1">Login instead</Link>
+          Already an Admin? <Link href="/nahid.admin" className="text-uiu-orange hover:text-orange-600 hover:underline transition-all decoration-2 underline-offset-4 ml-1">Login instead</Link>
         </div>
 
       </motion.div>

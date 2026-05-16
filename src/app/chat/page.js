@@ -22,6 +22,7 @@ function ChatContent() {
   const initialReceiverId = searchParams.get("receiverId");
   const initialReceiverEmail = searchParams.get("receiverEmail");
   const initialItem = searchParams.get("item");
+  const refSource = searchParams.get("ref"); // "admin" = came from admin panel
 
   const [currentUser, setCurrentUser] = useState(null);
   const [conversations, setConversations] = useState([]);
@@ -29,6 +30,11 @@ function ChatContent() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const scrollRef = useRef(null);
+  
+  // UI Customization States
+  const [sidebarWidth, setSidebarWidth] = useState(320); // Default width
+  const [chatScale, setChatScale] = useState(1.0); // 1.0 to 1.5
+  const isResizing = useRef(false);
 
   // Cloudinary Config
   const CLOUDINARY_CLOUD_NAME = "dkltd8juu";
@@ -107,6 +113,24 @@ function ChatContent() {
     return () => unsubscribe();
   }, [currentUser]);
 
+  const startResizing = (e) => {
+    isResizing.current = true;
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", stopResizing);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isResizing.current) return;
+    const newWidth = Math.max(260, Math.min(600, e.clientX));
+    setSidebarWidth(newWidth);
+  };
+
+  const stopResizing = () => {
+    isResizing.current = false;
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", stopResizing);
+  };
+
   useEffect(() => {
     if (!activeChat?.id || !currentUser) return;
     const myId = currentUser.firebaseUid || currentUser.email;
@@ -142,6 +166,31 @@ function ChatContent() {
                 { id: activeChat.receiverId, name: activeChat.receiverName || "User" }
             ]
         }, { merge: true });
+
+        // ── Notify admin via backend when message is sent to ECO_ADMIN ────────────
+        const isToAdmin = activeChat.receiverId === 'ECO_ADMIN' ||
+          activeChat.receiverEmail?.toLowerCase().includes('admin');
+        if (isToAdmin && payload.type === 'text') {
+          const msgPreview = payload.text.substring(0, 120);
+          const notifBody = `New message from ${myName} (${currentUser.email || myId}):\n"${msgPreview}"\n\nReply at: localhost:3000/chat`;
+          // Try backend SMS notification (non-blocking)
+          fetch('http://localhost:8080/api/admin/broadcast/sms-single', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: notifBody, phone: 'ADMIN' })
+          }).catch(() => {});
+          // Also try email notification
+          fetch('http://localhost:8080/api/admin/notify-chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              senderName: myName,
+              senderEmail: currentUser.email || myId,
+              message: msgPreview,
+              campaignRef: activeChat.item || ''
+            })
+          }).catch(() => {});
+        }
     } catch (err) { console.error(err); }
   };
 
@@ -238,13 +287,23 @@ function ChatContent() {
   if (!currentUser) return <div className="h-screen flex items-center justify-center">Loading...</div>;
 
   return (
-    <div className="flex h-screen bg-[#f8faf9] overflow-hidden font-sans">
-      <aside className={`w-full md:w-[400px] border-r border-slate-200 bg-white flex flex-col transition-all ${activeChat ? "hidden md:flex" : "flex"}`}>
+    <div className="flex h-screen bg-[#fafbfb] overflow-hidden select-none" style={{ fontSize: `${16 * chatScale}px` }}>
+      <aside 
+        style={{ width: `${sidebarWidth}px` }}
+        className={`bg-white border-r border-slate-200 flex-col transition-colors relative ${activeChat ? "hidden md:flex" : "flex w-full md:w-auto"}`}
+      >
+        <div 
+          onMouseDown={startResizing}
+          className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-uiu-emerald/30 transition-colors z-20 hidden md:block" 
+        />
+
         <div className="p-6 border-b border-slate-50">
           <div className="flex items-center justify-between mb-6">
-            <Link href="/dashboard" className="flex items-center gap-2 text-uiu-emerald font-black text-xl"><ArrowLeft className="w-5 h-5" /> Chat</Link>
-            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200 overflow-hidden">
-               {currentUser.image ? <img src={currentUser.image} className="w-full h-full object-cover" /> : <User className="w-5 h-5" />}
+            <Link href={refSource === 'admin' ? '/nahid.admin' : '/dashboard'} className="flex items-center gap-2 text-uiu-emerald font-black text-xl">
+              <ArrowLeft className="w-5 h-5" /> {refSource === 'admin' ? 'Admin Panel' : 'Chat'}
+            </Link>
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200 overflow-hidden shadow-sm">
+               {currentUser.image ? <img src={currentUser.image} className="w-full h-full object-cover" /> : <User className="w-6 h-6" />}
             </div>
           </div>
           <div className="relative group">
@@ -259,11 +318,23 @@ function ChatContent() {
             const receiverName = conv.participantDetails?.find(n => n.id !== myId)?.name || "User";
             const isUnread = conv.unreadBy?.includes(myId);
             return (
-              <button key={conv.id} onClick={() => setActiveChat({ id: conv.id, receiverName: receiverName, receiverId: receiverId, item: conv.item })} className={`w-full p-5 flex items-center gap-4 transition-all border-b border-slate-50 ${activeChat?.id === conv.id ? "bg-emerald-50/50 border-r-4 border-r-uiu-emerald" : "hover:bg-slate-50"}`}>
-                <div className="relative"><div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-uiu-emerald border border-uiu-emerald/20 shadow-sm"><User className="w-6 h-6" /></div>{isUnread && <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white animate-pulse" />}</div>
+              <button 
+                key={conv.id} 
+                onClick={() => setActiveChat({ id: conv.id, receiverName: receiverName, receiverId: receiverId, item: conv.item })} 
+                className={`w-full p-6 flex items-center gap-4 transition-all border-b border-slate-50 ${activeChat?.id === conv.id ? "bg-emerald-50/50 border-r-4 border-r-uiu-emerald" : "hover:bg-slate-50"}`}
+              >
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center text-uiu-emerald border border-uiu-emerald/20 shadow-sm transition-transform active:scale-95">
+                    <User className="w-7 h-7" />
+                  </div>
+                  {isUnread && <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white animate-pulse shadow-md" />}
+                </div>
                 <div className="flex-1 text-left min-w-0">
-                   <div className="flex justify-between items-center mb-0.5"><h4 className="font-black text-slate-800 truncate">{receiverName}</h4>{conv.updatedAt && <span className="text-[10px] font-bold text-slate-300">{new Date(conv.updatedAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}</div>
-                   <p className={`text-[11px] truncate ${isUnread ? "font-black text-slate-900" : "font-bold text-slate-400"}`}>{conv.lastMessage || "Start chat..."}</p>
+                   <div className="flex justify-between items-center mb-1">
+                     <h4 className="font-black text-slate-800 truncate" style={{ fontSize: `${chatScale * 0.9}rem` }}>{receiverName}</h4>
+                     {conv.updatedAt && <span className="text-[10px] font-black text-slate-300">{new Date(conv.updatedAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
+                   </div>
+                   <p className={`truncate leading-tight ${isUnread ? "font-black text-slate-900" : "font-bold text-slate-400"}`} style={{ fontSize: `${chatScale * 0.75}rem` }}>{conv.lastMessage || "Start chat..."}</p>
                 </div>
               </button>
             );
@@ -274,17 +345,34 @@ function ChatContent() {
       <main className={`flex-1 flex flex-col bg-white transition-all ${!activeChat ? "hidden md:flex" : "flex"}`}>
         {activeChat ? (
           <>
-            <header className="p-4 md:p-6 border-b border-slate-100 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10">
+            <header className="p-6 md:p-8 border-b border-slate-100 flex items-center justify-between bg-white/90 backdrop-blur-md sticky top-0 z-10 shadow-sm">
               <div className="flex items-center gap-4">
-                <button onClick={() => setActiveChat(null)} className="md:hidden p-2 text-slate-400"><ChevronLeft className="w-6 h-6" /></button>
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200"><User className="w-5 h-5" /></div>
-                <div><h3 className="font-black text-slate-800">{activeChat.receiverName}</h3><div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /><span className="text-[10px] font-black text-emerald-500 uppercase">Active Now</span></div></div>
+                <button onClick={() => setActiveChat(null)} className="md:hidden p-2 text-slate-400 hover:text-uiu-emerald transition-colors"><ChevronLeft className="w-7 h-7" /></button>
+                <div className="w-12 h-12 md:w-16 md:h-16 rounded-[1.5rem] bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200 shadow-sm transition-transform active:scale-95"><User className="w-6 h-6 md:w-8 md:h-8" /></div>
+                <div>
+                  <h3 className="font-black text-slate-800 tracking-tight" style={{ fontSize: `${1.2 * chatScale}rem` }}>{activeChat.receiverName}</h3>
+                  <div className="flex items-center gap-2 mt-0.5"><div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /><span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Active Now</span></div>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                {uploading && <div className="w-5 h-5 border-2 border-uiu-emerald border-t-transparent rounded-full animate-spin" />}
-                <button className="p-2.5 text-slate-400 hover:bg-slate-50 rounded-xl transition-all"><Phone className="w-5 h-5" /></button>
-                <button className="p-2.5 text-slate-400 hover:bg-slate-50 rounded-xl transition-all"><Video className="w-5 h-5" /></button>
-                <button onClick={deleteChat} className="p-2.5 text-rose-400 hover:bg-rose-50 hover:text-rose-600 rounded-xl transition-all ml-2" title="Delete Entire Chat"><Trash2 className="w-5 h-5" /></button>
+              <div className="flex items-center gap-4">
+                {/* SCALING CONTROLS */}
+                <div className="hidden lg:flex items-center gap-3 bg-slate-100 px-4 py-2.5 rounded-2xl border border-slate-200 shadow-inner">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Display Size</span>
+                  <input 
+                    type="range" min="1.0" max="1.5" step="0.05" 
+                    value={chatScale} 
+                    onChange={(e) => setChatScale(parseFloat(e.target.value))}
+                    className="w-24 accent-uiu-emerald cursor-pointer"
+                  />
+                  <span className="text-[10px] font-black text-uiu-emerald">{Math.round(chatScale * 100)}%</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {uploading && <div className="w-6 h-6 border-3 border-uiu-emerald border-t-transparent rounded-full animate-spin mr-2" />}
+                  <button className="p-3.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-2xl transition-all shadow-sm"><Phone className="w-6 h-6" /></button>
+                  <button className="p-3.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-2xl transition-all shadow-sm"><Video className="w-6 h-6" /></button>
+                  <button onClick={deleteChat} className="p-3.5 text-rose-400 hover:bg-rose-50 hover:text-rose-600 rounded-2xl transition-all shadow-sm" title="Delete Conversation"><Trash2 className="w-6 h-6" /></button>
+                </div>
               </div>
             </header>
 
@@ -324,12 +412,13 @@ function ChatContent() {
 
                        <div 
                          onDoubleClick={() => reactToMessage(msg.id, "❤️")}
-                         className={`p-4 rounded-3xl shadow-sm text-sm relative group-hover:shadow-md transition-all ${isMine ? "bg-uiu-emerald text-white rounded-tr-none" : "bg-white text-slate-700 rounded-tl-none border border-slate-100"}`}
+                         style={{ padding: `${chatScale * 1}rem ${chatScale * 1.2}rem` }}
+                         className={`rounded-[2rem] shadow-sm relative group-hover:shadow-md transition-all font-bold ${isMine ? "bg-uiu-emerald text-white rounded-tr-none" : "bg-white text-slate-700 rounded-tl-none border border-slate-100"}`}
                        >
-                         {msg.type === 'text' && msg.text}
+                         {msg.type === 'text' && <span style={{ fontSize: `${chatScale * 1}rem` }}>{msg.text}</span>}
                          {msg.type === 'image' && <img src={msg.fileUrl} className="max-w-full rounded-2xl cursor-pointer" onClick={() => window.open(msg.fileUrl)} />}
                          {msg.type === 'file' && (
-                            <a href={msg.fileUrl} target="_blank" className="flex items-center gap-3 bg-black/5 p-3 rounded-2xl">
+                            <a href={msg.fileUrl} target="_blank" className="flex items-center gap-3 bg-black/5 p-4 rounded-2xl">
                                 <FileIcon className="w-6 h-6 text-uiu-emerald" />
                                 <div className="flex-1 min-w-0"><p className="text-xs font-black truncate">{msg.fileName || "File"}</p></div>
                                 <Download className="w-4 h-4" />
@@ -375,7 +464,12 @@ function ChatContent() {
                     <label className="p-3 text-slate-400 cursor-pointer hover:bg-slate-50 rounded-xl transition-all hidden sm:block"><input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'file')} /><Paperclip className="w-5 h-5" /></label>
                  </div>
                  <div className="flex-1 relative">
-                   <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type a message..." className="w-full pl-6 pr-12 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none focus:border-uiu-emerald transition-all" />
+                   <input 
+                     type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} 
+                     placeholder="Type a message..." 
+                     style={{ padding: `${chatScale * 1}rem` }}
+                     className="w-full pl-6 pr-12 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:border-uiu-emerald transition-all" 
+                   />
                    <button type="button" onClick={() => setShowEmojis(!showEmojis)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400"><Smile className="w-5 h-5" /></button>
                  </div>
                  <div className="flex items-center gap-2">
