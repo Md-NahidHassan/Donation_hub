@@ -114,70 +114,7 @@ function CampaignDetailsContent() {
     const currentUser = userStr ? JSON.parse(userStr) : null;
 
     const transform = (data) => {
-      const extra = mockDb.getCampaignExtras(data.title) || {};
-      let imageUrl = extra.image || data.image || data.imagePath;
-      if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('blob:') && !imageUrl.startsWith('data:')) {
-        imageUrl = `http://localhost:8080/${imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl}`;
-      }
-      let progress = data.progress;
-      if (progress === undefined || progress === null) {
-        const goal = parseFloat(data.goal) || 0;
-        const collected = parseFloat(data.collected) || 0;
-        progress = goal > 0 ? Math.round((collected / goal) * 100) : 0;
-      }
-      let bankAccounts = data.bankAccounts;
-      if (typeof bankAccounts === 'string') {
-        try { bankAccounts = JSON.parse(bankAccounts); } catch (e) { bankAccounts = []; }
-      }
-      const actualDuration = extra.duration ? parseInt(extra.duration) : (data.duration || 1);
-      const campaignKey = data.id?.toString() || data.title;
-
-      let endTimeMs = null;
-      if (data.endTime) {
-        const parsedMs = new Date(data.endTime).getTime();
-        if (!isNaN(parsedMs)) {
-          endTimeMs = parsedMs;
-          savePersistedEndTime(campaignKey, endTimeMs);
-        }
-      }
-      if (!endTimeMs) {
-        endTimeMs = getPersistedEndTime(campaignKey);
-        if (!endTimeMs || isNaN(endTimeMs)) {
-          let baseTimeMs = Date.now();
-          if (data.createdAt) {
-            const createdMs = new Date(data.createdAt).getTime();
-            if (!isNaN(createdMs)) baseTimeMs = createdMs;
-          }
-          endTimeMs = baseTimeMs + (actualDuration * 86400000);
-          savePersistedEndTime(campaignKey, endTimeMs);
-        }
-      }
-      const actualEndTime = isNaN(endTimeMs) ? new Date(Date.now() + (actualDuration * 86400000)).toISOString() : new Date(endTimeMs).toISOString();
-
-      // ── Merge localStorage reaction counts so they survive re-fetches ──────
-      const cId = data.id?.toString() || id || '';
-      const storedReactions = JSON.parse(localStorage.getItem(`campaign_reactions_${cId}`) || '{}');
-      const storedViewCount = parseInt(localStorage.getItem(`campaign_viewCount_${cId}`) || '0');
-
-      return {
-        ...data,
-        image: imageUrl,
-        progress,
-        duration: actualDuration,
-        endTime: actualEndTime,
-        goal: extra.goal || data.goal,
-        // Prefer localStorage counts over backend (localStorage is source of truth for reactions/views)
-        likeCount: storedReactions.LIKE ?? data.likeCount ?? 0,
-        loveCount: storedReactions.LOVE ?? data.loveCount ?? 0,
-        sadCount: storedReactions.SAD ?? data.sadCount ?? 0,
-        viewCount: Math.max(storedViewCount, data.viewCount || 0),
-        paymentQRs: (extra.paymentQRs && extra.paymentQRs.length > 0)
-          ? extra.paymentQRs
-          : (typeof data.paymentQRs === 'string' ? JSON.parse(data.paymentQRs) : (data.paymentQRs || [])),
-        bankAccounts: (extra.bankAccounts && extra.bankAccounts.length > 0)
-          ? extra.bankAccounts
-          : (bankAccounts && bankAccounts.length > 0 ? bankAccounts : [])
-      };
+      return mockDb.mapCampaign(data);
     };
 
     const fetchCampaign = async () => {

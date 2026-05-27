@@ -42,59 +42,28 @@ export default function PublicCampaignsPage() {
         setError(err.message);
       } finally {
         const mockCampaigns = mockDb.getCampaigns();
-        
-        // Transform the data to ensure UI compatibility
+
+        // Transform the data to ensure UI compatibility using central mapCampaign
         const mappedBackend = backendCampaigns.map(c => {
-          const extra = mockDb.getCampaignExtras(c.title) || mockDb.getCampaignExtras(c.id?.toString()) || {};
-          
-          let imageUrl = extra.image || c.image || c.imagePath;
-          if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('blob:') && !imageUrl.startsWith('data:')) {
-            imageUrl = `http://localhost:8080/${imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl}`;
-          }
-
-          let goal = extra.goal || c.goal || 0;
-          let progress = c.progress;
-          if (progress === undefined || progress === null) {
-            const parsedGoal = parseFloat(goal) || 0;
-            const collected = parseFloat(c.collected) || 0;
-            progress = parsedGoal > 0 ? Math.round((collected / parsedGoal) * 100) : 0;
-          }
-
-          // ── IMPROVED TIME LOGIC ──
-          const durationDays = parseInt(extra.duration || c.duration || 30);
-          let endTime = extra.endTime || c.endTime;
-          
-          // If no endTime provided, fallback to createdAt + duration
-          if (!endTime && (c.createdAt || extra.createdAt)) {
-            const start = new Date(c.createdAt || extra.createdAt).getTime();
-            endTime = new Date(start + durationDays * 86400000).toISOString();
-          } else if (!endTime) {
-            // Last resort: now + duration
-            endTime = new Date(Date.now() + durationDays * 86400000).toISOString();
-          }
-
-          const endMs = new Date(endTime).getTime();
-          const nowMs = Date.now();
-          const daysLeft = Math.max(0, Math.ceil((endMs - nowMs) / 86400000));
-
+          const mapped = mockDb.mapCampaign(c);
           return {
-            ...c,
-            _uniqueId: `backend-${c.id}`,
-            image: imageUrl,
-            goal: goal,
-            progress: progress,
-            daysLeft: daysLeft,
-            endTime: endTime,
-            duration: durationDays,
+            ...mapped,
             gradient: c.gradient || "from-emerald-500/10 to-teal-500/5",
             icon: typeof c.icon === 'string' ? <Zap className="w-10 h-10 text-amber-500" /> : c.icon
           };
         });
-        
+
         const backendTitles = new Set(mappedBackend.map(c => c.title.toLowerCase()));
         const uniqueMock = mockCampaigns
           .filter(c => !backendTitles.has(c.title.toLowerCase()))
-          .map(c => ({ ...c, _uniqueId: `mock-${c.id}` }));
+          .map(c => {
+            const mapped = mockDb.mapCampaign(c);
+            return {
+              ...mapped,
+              gradient: c.gradient || "from-emerald-500/10 to-teal-500/5",
+              icon: typeof c.icon === 'string' ? <Zap className="w-10 h-10 text-amber-500" /> : c.icon
+            };
+          });
 
         const combined = [...mappedBackend, ...uniqueMock];
 
@@ -114,7 +83,7 @@ export default function PublicCampaignsPage() {
     };
 
     fetchCampaigns();
-    
+
     // Listen for storage changes (triggered when admin saves extras or backend data)
     const handleStorage = (e) => {
       if (e.key === "ecoKnot_campaign_extras" || e.key === "ecoKnot_campaigns") {
@@ -203,131 +172,131 @@ export default function PublicCampaignsPage() {
             <p className="text-slate-500 font-black text-xl tracking-tight">Fetching live system data...</p>
           </div>
         ) : error ? (
-           <div className="flex flex-col items-center justify-center py-16 px-8 rounded-[3rem] bg-rose-50 border border-rose-200 gap-6">
-              <AlertCircle className="w-12 h-12 text-rose-500" />
-              <div className="text-center">
-                <h3 className="text-2xl font-black text-rose-800 tracking-tight">Connection Timeout</h3>
-                <p className="text-rose-500 font-medium mt-2">The system api at :8080 is unreachable. Displaying cached local data.</p>
-              </div>
-              <button 
-                onClick={() => window.location.reload()}
-                className="px-8 py-3 bg-white border border-rose-200 rounded-full text-rose-600 font-black hover:bg-rose-100 transition-all shadow-xl shadow-rose-100"
-              >
-                Reconnect Now
-              </button>
-           </div>
+          <div className="flex flex-col items-center justify-center py-16 px-8 rounded-[3rem] bg-rose-50 border border-rose-200 gap-6">
+            <AlertCircle className="w-12 h-12 text-rose-500" />
+            <div className="text-center">
+              <h3 className="text-2xl font-black text-rose-800 tracking-tight">Connection Timeout</h3>
+              <p className="text-rose-500 font-medium mt-2">The system api at :8080 is unreachable. Displaying cached local data.</p>
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-8 py-3 bg-white border border-rose-200 rounded-full text-rose-600 font-black hover:bg-rose-100 transition-all shadow-xl shadow-rose-100"
+            >
+              Reconnect Now
+            </button>
+          </div>
         ) : campaigns.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             {campaigns.map((campaign, i) => (
-            <motion.div
-              key={campaign._uniqueId || campaign.id}
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1, duration: 0.6, type: "spring" }}
-              whileHover={{ y: -10 }}
-              className="group flex flex-col h-full bg-white/60 backdrop-blur-2xl rounded-[3rem] border border-white shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer"
-            >
-              {/* Card Illustration/Icon Area — shows uploaded image if present */}
-              {campaign.image ? (
-                <div className="relative overflow-hidden border-b border-white" style={{ height: "200px" }}>
-                  <img
-                    src={campaign.image}
-                    alt={campaign.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  {/* Gradient overlay for readability */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-                  {/* Badge */}
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
-                    <span className="px-5 py-1.5 bg-white/75 backdrop-blur-md text-uiu-emerald text-[10px] font-black tracking-widest uppercase rounded-full border border-white shadow-sm whitespace-nowrap">
-                      Live Community Project
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className={`p-10 bg-gradient-to-br ${campaign.gradient} relative overflow-hidden flex flex-col items-center justify-center border-b border-white`}>
-                  <div className="p-6 bg-white rounded-[2rem] shadow-xl relative z-10 group-hover:scale-110 transition-transform duration-500">
-                    {campaign.icon}
-                  </div>
-                  <div className="mt-6 flex items-center gap-2 relative z-10">
-                    <span className="px-5 py-1.5 bg-uiu-emerald/20 text-uiu-emerald text-[10px] font-black tracking-widest uppercase rounded-full border border-uiu-emerald/30 shadow-sm">
-                      Live Community Project
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Card Meta Content */}
-              <div className="p-10 flex flex-col flex-1 bg-white/80 border-t border-white">
-                <h3 className="text-3xl font-black text-slate-800 mb-4 leading-tight group-hover:text-uiu-orange transition-colors line-clamp-2">
-                  {campaign.title}
-                </h3>
-                <p className="text-slate-500 font-medium text-sm leading-relaxed mb-10 line-clamp-3">
-                  {campaign.description || "Help support our university community initiative through sustainable resource sharing and donations."}
-                </p>
-
-                {/* Tracking Progress Section */}
-                <div className="mt-auto space-y-5">
-                  <div className="flex justify-between items-end">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Goal Status</span>
-                      <span className="text-2xl font-black text-uiu-emerald">{campaign.progress}%</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Goal</span>
-                      <div className="flex items-center gap-1 text-slate-900 font-bold">
-                        <Target className="w-4 h-4 text-rose-500" /> {campaign.goal || campaign.items}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Sleek Progress Bar */}
-                  <div className="h-4 w-full bg-slate-100 rounded-full shadow-inner overflow-hidden border border-slate-100">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${campaign.progress}%` }}
-                      transition={{ duration: 1.5, delay: 0.5 }}
-                      className="h-full bg-gradient-to-r from-uiu-emerald to-teal-400 rounded-full"
+              <motion.div
+                key={campaign._uniqueId || campaign.id}
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1, duration: 0.6, type: "spring" }}
+                whileHover={{ y: -10 }}
+                className="group flex flex-col h-full bg-white/60 backdrop-blur-2xl rounded-[3rem] border border-white shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer"
+              >
+                {/* Card Illustration/Icon Area — shows uploaded image if present */}
+                {campaign.image ? (
+                  <div className="relative overflow-hidden border-b border-white" style={{ height: "200px" }}>
+                    <img
+                      src={campaign.image}
+                      alt={campaign.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
+                    {/* Gradient overlay for readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                    {/* Badge */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
+                      <span className="px-5 py-1.5 bg-white/75 backdrop-blur-md text-uiu-emerald text-[10px] font-black tracking-widest uppercase rounded-full border border-white shadow-sm whitespace-nowrap">
+                        Live Community Project
+                      </span>
+                    </div>
                   </div>
+                ) : (
+                  <div className={`p-10 bg-gradient-to-br ${campaign.gradient} relative overflow-hidden flex flex-col items-center justify-center border-b border-white`}>
+                    <div className="p-6 bg-white rounded-[2rem] shadow-xl relative z-10 group-hover:scale-110 transition-transform duration-500">
+                      {campaign.icon}
+                    </div>
+                    <div className="mt-6 flex items-center gap-2 relative z-10">
+                      <span className="px-5 py-1.5 bg-uiu-emerald/20 text-uiu-emerald text-[10px] font-black tracking-widest uppercase rounded-full border border-uiu-emerald/30 shadow-sm">
+                        Live Community Project
+                      </span>
+                    </div>
+                  </div>
+                )}
 
-                  <div className="flex items-center justify-between pt-6 border-t border-slate-100/50">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-slate-300" />
-                        <span className="text-xs font-black text-slate-400 tracking-tight">{campaign.donors || 0} Donors</span>
+                {/* Card Meta Content */}
+                <div className="p-10 flex flex-col flex-1 bg-white/80 border-t border-white">
+                  <h3 className="text-3xl font-black text-slate-800 mb-4 leading-tight group-hover:text-uiu-orange transition-colors line-clamp-2">
+                    {campaign.title}
+                  </h3>
+                  <p className="text-slate-500 font-medium text-sm leading-relaxed mb-10 line-clamp-3">
+                    {campaign.description || "Help support our university community initiative through sustainable resource sharing and donations."}
+                  </p>
+
+                  {/* Tracking Progress Section */}
+                  <div className="mt-auto space-y-5">
+                    <div className="flex justify-between items-end">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Goal Status</span>
+                        <span className="text-2xl font-black text-uiu-emerald">{campaign.progress}%</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-uiu-orange/60" />
-                        <span className="text-xs font-black text-uiu-orange tracking-tight">{campaign.daysLeft} Days Left</span>
+                      <div className="text-right">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Goal</span>
+                        <div className="flex items-center gap-1 text-slate-900 font-bold">
+                          <Target className="w-4 h-4 text-rose-500" /> {campaign.goal || campaign.items}
+                        </div>
                       </div>
                     </div>
-                    <Link
-                      href={`/campaign-details?id=${campaign.id}`}
-                      className="group/btn flex items-center gap-2 text-uiu-orange font-black text-base transition-opacity"
-                    >
-                      Join <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
-                    </Link>
-                  </div>
 
-                  {/* Reaction mini-bar */}
-                  {(() => {
-                    if (typeof window === 'undefined') return null;
-                    const r = JSON.parse(localStorage.getItem(`campaign_reactions_${campaign.id}`) || '{"LIKE":0,"LOVE":0,"SAD":0}');
-                    const total = (r.LIKE || 0) + (r.LOVE || 0) + (r.SAD || 0);
-                    if (total === 0) return null;
-                    return (
-                      <div className="flex items-center gap-3 pt-3 border-t border-slate-100/30">
-                        {r.LIKE > 0 && <span className="text-[11px] font-black text-slate-400">👍 {r.LIKE}</span>}
-                        {r.LOVE > 0 && <span className="text-[11px] font-black text-slate-400">❤️ {r.LOVE}</span>}
-                        {r.SAD > 0 && <span className="text-[11px] font-black text-slate-400">😢 {r.SAD}</span>}
+                    {/* Sleek Progress Bar */}
+                    <div className="h-4 w-full bg-slate-100 rounded-full shadow-inner overflow-hidden border border-slate-100">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${campaign.progress}%` }}
+                        transition={{ duration: 1.5, delay: 0.5 }}
+                        className="h-full bg-gradient-to-r from-uiu-emerald to-teal-400 rounded-full"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between pt-6 border-t border-slate-100/50">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-slate-300" />
+                          <span className="text-xs font-black text-slate-400 tracking-tight">{campaign.donors || 0} Donors</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-uiu-orange/60" />
+                          <span className="text-xs font-black text-uiu-orange tracking-tight">{campaign.daysLeft} Days Left</span>
+                        </div>
                       </div>
-                    );
-                  })()}
+                      <Link
+                        href={`/campaign-details?id=${campaign.id}`}
+                        className="group/btn flex items-center gap-2 text-uiu-orange font-black text-base transition-opacity"
+                      >
+                        Join <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+                      </Link>
+                    </div>
+
+                    {/* Reaction mini-bar */}
+                    {(() => {
+                      if (typeof window === 'undefined') return null;
+                      const r = JSON.parse(localStorage.getItem(`campaign_reactions_${campaign.id}`) || '{"LIKE":0,"LOVE":0,"SAD":0}');
+                      const total = (r.LIKE || 0) + (r.LOVE || 0) + (r.SAD || 0);
+                      if (total === 0) return null;
+                      return (
+                        <div className="flex items-center gap-3 pt-3 border-t border-slate-100/30">
+                          {r.LIKE > 0 && <span className="text-[11px] font-black text-slate-400">👍 {r.LIKE}</span>}
+                          {r.LOVE > 0 && <span className="text-[11px] font-black text-slate-400">❤️ {r.LOVE}</span>}
+                          {r.SAD > 0 && <span className="text-[11px] font-black text-slate-400">😢 {r.SAD}</span>}
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            ))}
           </div>
         ) : (
           <div className="col-span-full py-20 text-center text-slate-400 font-medium italic bg-white/40 rounded-[3rem] border border-dashed border-slate-200">

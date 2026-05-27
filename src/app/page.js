@@ -72,13 +72,14 @@ export default function Home() {
               icon: iconMap[c.icon] || <Zap className="w-10 h-10 text-amber-500" />
             };
           });
-          setActiveCampaigns(mapped.slice(0, 6));
+          const active = mapped.filter(c => !mockDb.isCampaignExpired(c));
+          setActiveCampaigns(active.slice(0, 6));
         } else {
           throw new Error("API fail");
         }
       } catch (err) {
         // Fallback to mock campaigns
-        const allCampaigns = mockDb.getCampaigns();
+        const allCampaigns = mockDb.getCampaigns().filter(c => !mockDb.isCampaignExpired(c));
         setActiveCampaigns(allCampaigns.slice(0, 6).map(c => ({
           ...c,
           icon: iconMap[c.icon] || <Zap className="w-10 h-10 text-amber-500" />

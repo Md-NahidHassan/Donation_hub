@@ -36,7 +36,12 @@ import {
   ImageIcon,
   File,
   DownloadCloud,
-  Square
+  Square,
+  Droplet,
+  Flame,
+  Phone,
+  MapPin,
+  Clock
 } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import Link from "next/link";
@@ -45,50 +50,50 @@ import { db, serverTimestamp } from "@/utils/firebase";
 import { collection, query, where, onSnapshot, orderBy, addDoc, setDoc, doc, deleteDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 
 // ── Admin Full Messenger ──────────────────────────────────────────────────────
-const ADMIN_ID   = 'ECO_ADMIN';
+const ADMIN_ID = 'ECO_ADMIN';
 const ADMIN_NAME = 'EcoNexus Admin';
-const QUICK_EMOJIS    = ['😊','😂','❤️','👍','🙌','🔥','🙏','😮','😢','🎉','✨','🤝'];
-const REACTION_EMOJIS = ['❤️','😂','😮','😢','🔥','👍'];
+const QUICK_EMOJIS = ['😊', '😂', '❤️', '👍', '🙌', '🔥', '🙏', '😮', '😢', '🎉', '✨', '🤝'];
+const REACTION_EMOJIS = ['❤️', '😂', '😮', '😢', '🔥', '👍'];
 
 const CLOUDINARY_CLOUD_NAME = 'dkltd8juu';
 const CLOUDINARY_UPLOAD_PRESET = 'ml_default';
 
 function AdminInbox() {
-  const [rooms,      setRooms]      = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [activeRoom, setActiveRoom] = useState(null);
-  const [messages,   setMessages]   = useState([]);
-  const [newMsg,     setNewMsg]     = useState('');
+  const [messages, setMessages] = useState([]);
+  const [newMsg, setNewMsg] = useState('');
   const [hoveredMsg, setHoveredMsg] = useState(null);
-  const [showEmoji,  setShowEmoji]  = useState(false);
-  const [uploading,  setUploading]  = useState(false);
-  const [recording,  setRecording]  = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [recording, setRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
-  const imgInputRef  = useRef(null);
+  const imgInputRef = useRef(null);
 
   /* ── rooms listener ─────────────────────────────────────── */
   useEffect(() => {
-    const q = query(collection(db,'chatRooms'), where('participants','array-contains',ADMIN_ID));
+    const q = query(collection(db, 'chatRooms'), where('participants', 'array-contains', ADMIN_ID));
     const unsub = onSnapshot(q, snap => {
-      setRooms(snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.updatedAt?.seconds||0)-(a.updatedAt?.seconds||0)));
+      setRooms(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0)));
     });
-    return ()=>unsub();
+    return () => unsub();
   }, []);
 
   /* ── messages listener ───────────────────────────────────── */
   useEffect(() => {
     if (!activeRoom?.id) return;
-    const q = query(collection(db,'chatRooms',activeRoom.id,'messages'), orderBy('timestamp','asc'));
+    const q = query(collection(db, 'chatRooms', activeRoom.id, 'messages'), orderBy('timestamp', 'asc'));
     const unsub = onSnapshot(q, snap => {
-      setMessages(snap.docs.map(d=>({id:d.id,...d.data()})));
-      setTimeout(()=>scrollRef.current?.scrollIntoView({behavior:'smooth'}),100);
+      setMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     });
     // mark read
     if (activeRoom.unreadBy?.includes(ADMIN_ID)) {
-      setDoc(doc(db,'chatRooms',activeRoom.id),{unreadBy:(activeRoom.unreadBy||[]).filter(x=>x!==ADMIN_ID)},{merge:true});
+      setDoc(doc(db, 'chatRooms', activeRoom.id), { unreadBy: (activeRoom.unreadBy || []).filter(x => x !== ADMIN_ID) }, { merge: true });
     }
-    return ()=>unsub();
+    return () => unsub();
   }, [activeRoom?.id]);
 
   /* ── send message ────────────────────────────────────────── */
@@ -97,23 +102,23 @@ function AdminInbox() {
     const finalPayload = payload || { type: 'text', text: newMsg.trim() };
     if (finalPayload.type === 'text' && !finalPayload.text) return;
 
-    const user = activeRoom.participantDetails?.find(p=>p.id!==ADMIN_ID);
+    const user = activeRoom.participantDetails?.find(p => p.id !== ADMIN_ID);
     if (!payload) { setNewMsg(''); setShowEmoji(false); }
 
-    await addDoc(collection(db,'chatRooms',activeRoom.id,'messages'),{
+    await addDoc(collection(db, 'chatRooms', activeRoom.id, 'messages'), {
       ...finalPayload,
-      senderId:ADMIN_ID,
-      senderName:ADMIN_NAME,
-      receiverId:user?.id||'',
-      timestamp:serverTimestamp(),
-      reactions:{}
+      senderId: ADMIN_ID,
+      senderName: ADMIN_NAME,
+      receiverId: user?.id || '',
+      timestamp: serverTimestamp(),
+      reactions: {}
     });
-    await setDoc(doc(db,'chatRooms',activeRoom.id),{
+    await setDoc(doc(db, 'chatRooms', activeRoom.id), {
       lastMessage: finalPayload.type === 'text' ? finalPayload.text : `Sent a ${finalPayload.type}`,
-      lastSender:ADMIN_ID,
-      updatedAt:serverTimestamp(),
-      unreadBy:[user?.id||'']
-    },{merge:true});
+      lastSender: ADMIN_ID,
+      updatedAt: serverTimestamp(),
+      unreadBy: [user?.id || '']
+    }, { merge: true });
   };
 
   /* ── media upload ────────────────────────────────────────── */
@@ -174,42 +179,42 @@ function AdminInbox() {
   /* ── react to message ────────────────────────────────────── */
   const reactToMsg = async (msgId, emoji) => {
     if (!activeRoom?.id) return;
-    const msgRef = doc(db,'chatRooms',activeRoom.id,'messages',msgId);
-    const msg = messages.find(m=>m.id===msgId);
-    const existing = (msg?.reactions||{})[emoji]||[];
+    const msgRef = doc(db, 'chatRooms', activeRoom.id, 'messages', msgId);
+    const msg = messages.find(m => m.id === msgId);
+    const existing = (msg?.reactions || {})[emoji] || [];
     if (existing.includes(ADMIN_ID)) {
-      await updateDoc(msgRef,{[`reactions.${emoji}`]:arrayRemove(ADMIN_ID)});
+      await updateDoc(msgRef, { [`reactions.${emoji}`]: arrayRemove(ADMIN_ID) });
     } else {
-      await updateDoc(msgRef,{[`reactions.${emoji}`]:arrayUnion(ADMIN_ID)});
+      await updateDoc(msgRef, { [`reactions.${emoji}`]: arrayUnion(ADMIN_ID) });
     }
   };
 
   /* ── delete single message ───────────────────────────────── */
   const deleteMsg = async (msgId) => {
     if (!activeRoom?.id) return;
-    await deleteDoc(doc(db,'chatRooms',activeRoom.id,'messages',msgId));
+    await deleteDoc(doc(db, 'chatRooms', activeRoom.id, 'messages', msgId));
   };
 
   /* ── delete full conversation ────────────────────────────── */
   const deleteConversation = async () => {
     if (!activeRoom?.id || !confirm('Delete this entire conversation? This cannot be undone.')) return;
-    await deleteDoc(doc(db,'chatRooms',activeRoom.id));
+    await deleteDoc(doc(db, 'chatRooms', activeRoom.id));
     setActiveRoom(null);
     setMessages([]);
   };
 
   /* ── helpers ─────────────────────────────────────────────── */
-  const fmtTime = secs => secs ? new Date(secs*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
+  const fmtTime = secs => secs ? new Date(secs * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
   const renderMediaMsg = (msg) => {
-    if (msg.type==='image') return <img src={msg.fileUrl} alt="img" className="max-w-[220px] rounded-xl mt-1 cursor-pointer shadow-sm border border-slate-100" onClick={()=>window.open(msg.fileUrl,'_blank')} />;
-    if (msg.type==='audio') return <audio controls src={msg.fileUrl} className="max-w-[220px] mt-1 h-8" />;
-    if (msg.type==='file')  return <a href={msg.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs text-blue-500 font-bold underline mt-1"><File className="w-3 h-3"/> {msg.fileName||'File'}</a>;
+    if (msg.type === 'image') return <img src={msg.fileUrl} alt="img" className="max-w-[220px] rounded-xl mt-1 cursor-pointer shadow-sm border border-slate-100" onClick={() => window.open(msg.fileUrl, '_blank')} />;
+    if (msg.type === 'audio') return <audio controls src={msg.fileUrl} className="max-w-[220px] mt-1 h-8" />;
+    if (msg.type === 'file') return <a href={msg.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs text-blue-500 font-bold underline mt-1"><File className="w-3 h-3" /> {msg.fileName || 'File'}</a>;
     return null;
   };
 
   return (
-    <div className="flex rounded-3xl overflow-hidden border border-slate-100 shadow-sm bg-white" style={{height:'600px'}}>
+    <div className="flex rounded-3xl overflow-hidden border border-slate-100 shadow-sm bg-white" style={{ height: '600px' }}>
 
       {/* ── LEFT: conversation list ── */}
       <div className="w-[270px] border-r border-slate-100 flex flex-col bg-slate-50/60 shrink-0">
@@ -218,27 +223,27 @@ function AdminInbox() {
           {uploading && <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />}
         </div>
         <div className="flex-1 overflow-y-auto no-scrollbar">
-          {rooms.length===0 && (
+          {rooms.length === 0 && (
             <div className="p-8 text-center">
               <p className="text-xs font-bold text-slate-400">No messages yet</p>
               <p className="text-[10px] text-slate-300 mt-1">Users who use "Chat with Organizer" appear here</p>
             </div>
           )}
-          {rooms.map(room=>{
-            const user  = room.participantDetails?.find(p=>p.id!==ADMIN_ID);
+          {rooms.map(room => {
+            const user = room.participantDetails?.find(p => p.id !== ADMIN_ID);
             const unread = room.unreadBy?.includes(ADMIN_ID);
-            const isAct  = activeRoom?.id===room.id;
+            const isAct = activeRoom?.id === room.id;
             return (
-              <button key={room.id} onClick={()=>{setActiveRoom(room);setMessages([]);}} className={`w-full p-4 flex items-center gap-3 text-left border-b border-slate-50/80 transition-all ${isAct?'bg-blue-50 border-r-4 border-r-blue-500':'hover:bg-white'}`}>
+              <button key={room.id} onClick={() => { setActiveRoom(room); setMessages([]); }} className={`w-full p-4 flex items-center gap-3 text-left border-b border-slate-50/80 transition-all ${isAct ? 'bg-blue-50 border-r-4 border-r-blue-500' : 'hover:bg-white'}`}>
                 <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 text-white font-black flex items-center justify-center text-base shrink-0 shadow-sm">
-                  {(user?.name||'U')[0].toUpperCase()}
+                  {(user?.name || 'U')[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className={`text-sm font-black truncate ${unread?'text-slate-900':'text-slate-600'}`}>{user?.name||'Unknown User'}</p>
+                    <p className={`text-sm font-black truncate ${unread ? 'text-slate-900' : 'text-slate-600'}`}>{user?.name || 'Unknown User'}</p>
                     <span className="text-[9px] text-slate-300 font-bold ml-1 shrink-0">{fmtTime(room.updatedAt?.seconds)}</span>
                   </div>
-                  <p className={`text-[11px] truncate mt-0.5 ${unread?'font-black text-slate-800':'font-medium text-slate-400'}`}>{room.lastMessage||'...'}</p>
+                  <p className={`text-[11px] truncate mt-0.5 ${unread ? 'font-black text-slate-800' : 'font-medium text-slate-400'}`}>{room.lastMessage || '...'}</p>
                 </div>
                 {unread && <div className="w-2.5 h-2.5 bg-blue-500 rounded-full shrink-0 animate-pulse" />}
               </button>
@@ -249,18 +254,18 @@ function AdminInbox() {
 
       {/* ── RIGHT: chat area ── */}
       <div className="flex-1 flex flex-col bg-white min-w-0 relative">
-        {activeRoom ? (()=>{
-          const user = activeRoom.participantDetails?.find(p=>p.id!==ADMIN_ID);
+        {activeRoom ? (() => {
+          const user = activeRoom.participantDetails?.find(p => p.id !== ADMIN_ID);
           return (
             <>
               {/* Header */}
               <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 text-white font-black flex items-center justify-center shrink-0 shadow-sm">
-                    {(user?.name||'U')[0].toUpperCase()}
+                    {(user?.name || 'U')[0].toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-black text-slate-800 text-sm">{user?.name||'User'}</p>
+                    <p className="font-black text-slate-800 text-sm">{user?.name || 'User'}</p>
                     <p className="text-[10px] text-slate-400 font-bold">{user?.id}</p>
                   </div>
                 </div>
@@ -270,48 +275,47 @@ function AdminInbox() {
               </div>
 
               {/* Messages area */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar bg-slate-50/30" onClick={()=>setShowEmoji(false)}>
-                {messages.map(msg=>{
-                  const isAdmin = msg.senderId===ADMIN_ID;
-                  const senderName = isAdmin ? ADMIN_NAME : (user?.name||'User');
-                  const reactionEntries = Object.entries(msg.reactions||{}).filter(([,users])=>users?.length>0);
+              <div className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar bg-slate-50/30" onClick={() => setShowEmoji(false)}>
+                {messages.map(msg => {
+                  const isAdmin = msg.senderId === ADMIN_ID;
+                  const senderName = isAdmin ? ADMIN_NAME : (user?.name || 'User');
+                  const reactionEntries = Object.entries(msg.reactions || {}).filter(([, users]) => users?.length > 0);
                   return (
-                    <div key={msg.id} className={`flex gap-2 group animate-in fade-in slide-in-from-bottom-2 duration-300 ${isAdmin?'justify-end':'justify-start'}`}
-                      onMouseEnter={()=>setHoveredMsg(msg.id)} onMouseLeave={()=>setHoveredMsg(null)}>
+                    <div key={msg.id} className={`flex gap-2 group animate-in fade-in slide-in-from-bottom-2 duration-300 ${isAdmin ? 'justify-end' : 'justify-start'}`}
+                      onMouseEnter={() => setHoveredMsg(msg.id)} onMouseLeave={() => setHoveredMsg(null)}>
                       {!isAdmin && (
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 text-white font-black flex items-center justify-center text-xs shrink-0 mt-1 shadow-sm">
-                          {(user?.name||'U')[0].toUpperCase()}
+                          {(user?.name || 'U')[0].toUpperCase()}
                         </div>
                       )}
 
-                      <div className={`flex flex-col max-w-[75%] ${isAdmin?'items-end':'items-start'}`}>
+                      <div className={`flex flex-col max-w-[75%] ${isAdmin ? 'items-end' : 'items-start'}`}>
                         <p className="text-[10px] font-bold text-slate-400 mb-1 px-1">{senderName}</p>
 
-                        <div className={`flex items-end gap-1.5 ${isAdmin?'flex-row-reverse':''}`}>
-                          <div className={`px-4 py-2.5 rounded-2xl text-sm font-medium leading-relaxed shadow-sm transition-all ${
-                            isAdmin ? 'bg-blue-500 text-white rounded-br-sm' : 'bg-white text-slate-800 rounded-bl-sm border border-slate-100'
-                          }`}>
-                            {msg.type==='text'||!msg.type ? msg.text : renderMediaMsg(msg)}
-                            {msg.type!=='text' && msg.type && msg.text && (
+                        <div className={`flex items-end gap-1.5 ${isAdmin ? 'flex-row-reverse' : ''}`}>
+                          <div className={`px-4 py-2.5 rounded-2xl text-sm font-medium leading-relaxed shadow-sm transition-all ${isAdmin ? 'bg-blue-500 text-white rounded-br-sm' : 'bg-white text-slate-800 rounded-bl-sm border border-slate-100'
+                            }`}>
+                            {msg.type === 'text' || !msg.type ? msg.text : renderMediaMsg(msg)}
+                            {msg.type !== 'text' && msg.type && msg.text && (
                               <p className="text-[10px] opacity-70 mt-1 italic">{msg.text}</p>
                             )}
                           </div>
 
-                          {hoveredMsg===msg.id && (
-                            <div className={`flex items-center gap-1 ${isAdmin?'flex-row-reverse':''}`}>
+                          {hoveredMsg === msg.id && (
+                            <div className={`flex items-center gap-1 ${isAdmin ? 'flex-row-reverse' : ''}`}>
                               <div className="relative">
                                 <button className="text-base hover:scale-125 transition-transform p-1 rounded-lg hover:bg-slate-100" title="React"
-                                  onClick={e=>{e.stopPropagation();setHoveredMsg(h=>h===msg.id?null:msg.id);}}>
+                                  onClick={e => { e.stopPropagation(); setHoveredMsg(h => h === msg.id ? null : msg.id); }}>
                                   😊
                                 </button>
                                 <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-1 bg-white rounded-full shadow-2xl border border-slate-100 px-3 py-1.5 z-50">
-                                  {REACTION_EMOJIS.map(e=>(
-                                    <button key={e} onClick={()=>reactToMsg(msg.id,e)}
+                                  {REACTION_EMOJIS.map(e => (
+                                    <button key={e} onClick={() => reactToMsg(msg.id, e)}
                                       className="text-lg hover:scale-150 transition-transform">{e}</button>
                                   ))}
                                 </div>
                               </div>
-                              <button onClick={()=>deleteMsg(msg.id)} title="Delete message"
+                              <button onClick={() => deleteMsg(msg.id)} title="Delete message"
                                 className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-all">
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -319,10 +323,10 @@ function AdminInbox() {
                           )}
                         </div>
 
-                        {reactionEntries.length>0 && (
+                        {reactionEntries.length > 0 && (
                           <div className="flex gap-1 mt-1 flex-wrap">
-                            {reactionEntries.map(([emoji,users])=>(
-                              <button key={emoji} onClick={()=>reactToMsg(msg.id,emoji)}
+                            {reactionEntries.map(([emoji, users]) => (
+                              <button key={emoji} onClick={() => reactToMsg(msg.id, emoji)}
                                 className="flex items-center gap-1 text-[10px] bg-white border border-slate-100 rounded-full px-2 py-0.5 shadow-sm hover:border-blue-200 transition-all">
                                 {emoji} <span className="font-black text-slate-500">{users.length}</span>
                               </button>
@@ -340,10 +344,10 @@ function AdminInbox() {
               {/* Emoji quick-picker */}
               <AnimatePresence>
                 {showEmoji && (
-                  <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:10}} className="absolute bottom-24 left-6 flex gap-2 flex-wrap bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 z-50 max-w-[320px]">
-                    {QUICK_EMOJIS.map(e=>(
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-24 left-6 flex gap-2 flex-wrap bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 z-50 max-w-[320px]">
+                    {QUICK_EMOJIS.map(e => (
                       <button key={e} className="text-2xl hover:scale-125 transition-transform"
-                        onClick={()=>{setNewMsg(m=>m+e); setShowEmoji(false);}}
+                        onClick={() => { setNewMsg(m => m + e); setShowEmoji(false); }}
                       >{e}</button>
                     ))}
                   </motion.div>
@@ -352,20 +356,20 @@ function AdminInbox() {
 
               {/* Input bar */}
               <div className="p-4 border-t border-slate-100 flex gap-2 items-center bg-white">
-                <input type="file" ref={imgInputRef} className="hidden" accept="image/*" onChange={e=>handleFileUpload(e,'image')} />
-                <input type="file" ref={fileInputRef} className="hidden" onChange={e=>handleFileUpload(e,'file')} />
+                <input type="file" ref={imgInputRef} className="hidden" accept="image/*" onChange={e => handleFileUpload(e, 'image')} />
+                <input type="file" ref={fileInputRef} className="hidden" onChange={e => handleFileUpload(e, 'file')} />
 
                 <div className="flex gap-1">
-                  <button onClick={()=>imgInputRef.current?.click()} className="w-10 h-10 rounded-xl hover:bg-blue-50 text-slate-400 hover:text-blue-500 transition-all flex items-center justify-center shrink-0" title="Image"><ImageIcon className="w-5 h-5"/></button>
-                  <button onClick={()=>fileInputRef.current?.click()} className="w-10 h-10 rounded-xl hover:bg-blue-50 text-slate-400 hover:text-blue-500 transition-all flex items-center justify-center shrink-0" title="File"><Paperclip className="w-5 h-5"/></button>
-                  <button onClick={e=>{e.stopPropagation();setShowEmoji(s=>!s);}} className="w-10 h-10 rounded-xl hover:bg-amber-50 text-slate-400 hover:text-amber-500 transition-all flex items-center justify-center text-xl shrink-0" title="Emoji">😊</button>
+                  <button onClick={() => imgInputRef.current?.click()} className="w-10 h-10 rounded-xl hover:bg-blue-50 text-slate-400 hover:text-blue-500 transition-all flex items-center justify-center shrink-0" title="Image"><ImageIcon className="w-5 h-5" /></button>
+                  <button onClick={() => fileInputRef.current?.click()} className="w-10 h-10 rounded-xl hover:bg-blue-50 text-slate-400 hover:text-blue-500 transition-all flex items-center justify-center shrink-0" title="File"><Paperclip className="w-5 h-5" /></button>
+                  <button onClick={e => { e.stopPropagation(); setShowEmoji(s => !s); }} className="w-10 h-10 rounded-xl hover:bg-amber-50 text-slate-400 hover:text-amber-500 transition-all flex items-center justify-center text-xl shrink-0" title="Emoji">😊</button>
                 </div>
 
                 <div className="flex-1 relative">
-                   <input type="text" value={newMsg} onChange={e=>setNewMsg(e.target.value)}
+                  <input type="text" value={newMsg} onChange={e => setNewMsg(e.target.value)}
                     disabled={recording}
-                    onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}}
-                    placeholder={recording ? "Recording..." : `Reply to ${user?.name||'User'}...`}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                    placeholder={recording ? "Recording..." : `Reply to ${user?.name || 'User'}...`}
                     className={`w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none focus:border-blue-300 focus:bg-white transition-all ${recording ? 'animate-pulse' : ''}`} />
                 </div>
 
@@ -373,9 +377,9 @@ function AdminInbox() {
                   {recording ? (
                     <button onClick={stopRecording} className="w-11 h-11 bg-rose-500 text-white rounded-2xl flex items-center justify-center transition-all animate-pulse shadow-lg shadow-rose-100"><Square className="w-5 h-5 fill-current" /></button>
                   ) : (
-                    <button onClick={startRecording} className="w-11 h-11 bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-blue-500 rounded-2xl flex items-center justify-center transition-all" title="Voice Message"><Mic className="w-5 h-5"/></button>
+                    <button onClick={startRecording} className="w-11 h-11 bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-blue-500 rounded-2xl flex items-center justify-center transition-all" title="Voice Message"><Mic className="w-5 h-5" /></button>
                   )}
-                  <button onClick={()=>sendMessage()}
+                  <button onClick={() => sendMessage()}
                     className="w-11 h-11 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl flex items-center justify-center transition-all shadow-xl shadow-blue-100 active:scale-95 shrink-0">
                     <Send className="w-4 h-4" />
                   </button>
@@ -428,7 +432,9 @@ export default function AdminControlPanel() {
   const [isBroadcastingEmail, setIsBroadcastingEmail] = useState(false);
   const [isBroadcastingSms, setIsBroadcastingSms] = useState(false);
   const [broadcastHistory, setBroadcastHistory] = useState([]);
-  const [smsGatewayEndpoint, setSmsGatewayEndpoint] = useState("");
+  const [smsGatewayEndpoint, setSmsGatewayEndpoint] = useState("http://192.168.0.106:8082");
+  const [smsGatewayToken, setSmsGatewayToken] = useState("b2c07958-bf84-46ff-b104-45c4f820d931");
+  const [broadcastMode, setBroadcastMode] = useState("email"); // "email" or "sms"
 
   const coverInputRef = useRef(null);
   const csvInputRef = useRef(null);
@@ -438,6 +444,7 @@ export default function AdminControlPanel() {
   const [paymentQRs, setPaymentQRs] = useState([]);
   const [bankAccounts, setBankAccounts] = useState([{ id: 1, bankName: "", accountName: "", accountNumber: "", branch: "" }]);
 
+  const [bloodDonations, setBloodDonations] = useState([]);
   const [adminRooms, setAdminRooms] = useState([]);
 
   useEffect(() => {
@@ -462,37 +469,13 @@ export default function AdminControlPanel() {
     const mockCampaigns = mockDb.getCampaigns();
 
     const mappedBackend = backendCampaigns.map(c => {
+      const mapped = mockDb.mapCampaign(c);
       const extra = mockDb.getCampaignExtras(c.title) || mockDb.getCampaignExtras(c.id?.toString()) || {};
-      let imageUrl = extra.image || c.image || c.imagePath;
-      if (imageUrl && !imageUrl.startsWith("http") && !imageUrl.startsWith("blob:") && !imageUrl.startsWith("data:")) {
-        imageUrl = `http://localhost:8080/${imageUrl.startsWith("/") ? imageUrl.slice(1) : imageUrl}`;
-      }
-      let progress = c.progress;
-      if (progress === undefined || progress === null) {
-        const goal = parseFloat(extra.goal || c.goal) || 0;
-        const collected = parseFloat(c.collected) || 0;
-        progress = goal > 0 ? Math.round((collected / goal) * 100) : 0;
-      }
-      let paymentQRs = c.paymentQRs;
-      if (typeof paymentQRs === 'string') {
-        try { paymentQRs = JSON.parse(paymentQRs); } catch (e) { paymentQRs = []; }
-      }
-      let bankAccounts = c.bankAccounts;
-      if (typeof bankAccounts === 'string') {
-        try { bankAccounts = JSON.parse(bankAccounts); } catch (e) { bankAccounts = []; }
-      }
       return {
-        ...c,
-        _uniqueId: `backend-${c.id}`,
-        image: imageUrl,
-        progress: progress,
-        goal: extra.goal || c.goal,
-        duration: extra.duration || c.duration || 30,
+        ...mapped,
         bkash: extra.bkash || c.bkash,
         rocket: extra.rocket || c.rocket,
         nagad: extra.nagad || c.nagad,
-        paymentQRs: (extra.paymentQRs && extra.paymentQRs.length > 0) ? extra.paymentQRs : (paymentQRs || []),
-        bankAccounts: (extra.bankAccounts && extra.bankAccounts.length > 0) ? extra.bankAccounts : (bankAccounts || [])
       };
     });
 
@@ -500,7 +483,16 @@ export default function AdminControlPanel() {
     const backendIds = new Set(mappedBackend.map(c => c.id?.toString()));
     const uniqueMock = mockCampaigns
       .filter(c => !backendIds.has(c.id?.toString()) && !backendTitles.has(c.title?.toLowerCase()))
-      .map(c => ({ ...c, _uniqueId: `mock-${c.id}` }));
+      .map(c => {
+        const mapped = mockDb.mapCampaign(c);
+        const extra = mockDb.getCampaignExtras(c.title) || mockDb.getCampaignExtras(c.id?.toString()) || {};
+        return {
+          ...mapped,
+          bkash: extra.bkash || c.bkash,
+          rocket: extra.rocket || c.rocket,
+          nagad: extra.nagad || c.nagad,
+        };
+      });
 
     setCampaigns([...mappedBackend, ...uniqueMock]);
 
@@ -585,6 +577,13 @@ export default function AdminControlPanel() {
     }
 
     try {
+      const resBlood = await fetch("http://localhost:8080/api/blood-donation");
+      if (resBlood.ok) setBloodDonations(await resBlood.json());
+    } catch (err) {
+      console.warn("Failed to fetch blood donations:", err);
+    }
+
+    try {
       const resHistory = await fetch("http://localhost:8080/api/admin/broadcast/history");
       if (resHistory.ok) {
         const history = await resHistory.json();
@@ -592,6 +591,17 @@ export default function AdminControlPanel() {
       }
     } catch (err) {
       console.warn("Failed to fetch broadcast history:", err);
+    }
+
+    try {
+      const resConfig = await fetch("http://localhost:8080/api/admin/broadcast/config");
+      if (resConfig.ok) {
+        const config = await resConfig.json();
+        setSmsGatewayEndpoint(config.endpoint);
+        setSmsGatewayToken(config.token);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch SMS config:", err);
     }
   };
 
@@ -779,7 +789,7 @@ export default function AdminControlPanel() {
 
       console.log(`Sending ${method} to ${url}...`);
       const res = await fetch(url, { method: method, body: fd });
-      
+
       if (!res.ok) {
         const errorText = await res.text();
         throw new Error(`Backend error (${res.status}): ${errorText}`);
@@ -797,7 +807,7 @@ export default function AdminControlPanel() {
     } catch (err) {
       console.error("CRITICAL: Backend sync failed:", err);
       alert("⚠️ Database Sync Failed!\n\nReason: " + err.message + "\n\nThe campaign was saved LOCALLY to your browser as a fallback, but it might not be visible to others. Please check your backend connection.");
-      
+
       if (editingCampaignId) {
         mockDb.updateCampaign(editingCampaignId, campaignObj);
       } else {
@@ -915,17 +925,36 @@ export default function AdminControlPanel() {
       const lines = ev.target.result.split(/\r?\n/).filter(Boolean);
       if (lines.length < 2) { setCsvRecords([]); return; }
       const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+      
       const nameIdx = headers.findIndex(h => h.includes("name"));
       const emailIdx = headers.findIndex(h => h.includes("email"));
       const phoneIdx = headers.findIndex(h => h.includes("phone") || h.includes("mobile") || h.includes("number"));
+      
       const parsed = lines.slice(1).map(line => {
         const cols = line.split(",").map(c => c.trim());
+        // Stricter fallback logic
+        const nameVal = nameIdx >= 0 ? cols[nameIdx] : (cols[0] || "—");
+        let emailVal = emailIdx >= 0 ? cols[emailIdx] : "—";
+        let phoneVal = phoneIdx >= 0 ? cols[phoneIdx] : "—";
+
+        // If no headers match, try to guess based on mode
+        if (broadcastMode === "email" && emailVal === "—") {
+          // If the mode is email and we didn't find an email column, see if another column looks like an email
+          const guessedEmail = cols.find(c => c.includes("@"));
+          if (guessedEmail) emailVal = guessedEmail;
+        } else if (broadcastMode === "sms" && phoneVal === "—") {
+          // If mode is sms and we didn't find phone, maybe the second or third column is the number
+          if (cols[1] && /^\d+$/.test(cols[1].replace(/[+-\s]/g, ""))) phoneVal = cols[1];
+          else if (cols[2] && /^\d+$/.test(cols[2].replace(/[+-\s]/g, ""))) phoneVal = cols[2];
+        }
+
         return {
-          name: nameIdx >= 0 ? cols[nameIdx] || "—" : "—",
-          email: emailIdx >= 0 ? cols[emailIdx] || "—" : cols[0] || "—",
-          phone: phoneIdx >= 0 ? cols[phoneIdx] || "—" : cols[1] || "—",
+          name: nameVal,
+          email: emailVal,
+          phone: phoneVal,
         };
-      }).filter(r => r.email !== "—" || r.phone !== "—");
+      }).filter(r => (broadcastMode === "email" ? r.email !== "—" : r.phone !== "—"));
+      
       setCsvRecords(parsed);
     };
     reader.readAsText(file);
@@ -967,30 +996,70 @@ export default function AdminControlPanel() {
     const file = csvFile;
     if (!file) { alert("Please upload a CSV file first."); return; }
     if (!smsPreview) { alert("Please write a message to broadcast."); return; }
+
     setIsBroadcastingSms(true);
+
     try {
+      // Use the Spring Boot backend as a proxy to avoid CORS issues and handle delays
       const formData = new FormData();
       formData.append("file", file);
       formData.append("message", smsPreview);
+
       const res = await fetch("http://localhost:8080/api/admin/broadcast/sms", {
         method: "POST",
         body: formData,
       });
-      if (!res.ok) throw new Error("SMS Broadcast failed");
-      alert("SMS broadcast initiated successfully!");
+
+      if (!res.ok) throw new Error("Backend broadcast failed");
+      
+      alert(`SMS broadcast initiated successfully! System is sending messages with 5s delay.`);
       handleClearCSV();
       setSmsPreview("");
+      refreshData();
     } catch (error) {
       console.error("SMS Broadcast error:", error);
-      alert("Failed to initiate SMS broadcast.");
+      alert("Failed to initiate SMS broadcast via backend.");
     } finally {
       setIsBroadcastingSms(false);
+    }
+  };
+
+  const handleDeleteBroadcastLog = async (logId) => {
+    if (!confirm("Are you sure you want to delete this log?")) return;
+    try {
+      const res = await fetch(`http://localhost:8080/api/admin/broadcast/history/${logId}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        setBroadcastHistory(prev => prev.filter(h => h.id !== logId));
+      } else {
+        alert("Delete failed on backend.");
+      }
+    } catch (err) {
+      console.error("Error deleting log:", err);
+      alert("Connection error.");
     }
   };
 
   const handleUpdateSettings = (key, value) => {
     mockDb.updateSettings({ [key]: value });
     refreshData();
+  };
+
+  const handleSaveSmsConfig = async () => {
+    try {
+      const res = await fetch(`http://localhost:8080/api/admin/broadcast/config?endpoint=${encodeURIComponent(smsGatewayEndpoint)}&token=${encodeURIComponent(smsGatewayToken)}`, {
+        method: "POST"
+      });
+      if (res.ok) {
+        alert("SMS Gateway Configuration saved to backend!");
+      } else {
+        alert("Failed to save configuration.");
+      }
+    } catch (err) {
+      console.error("Error saving configuration:", err);
+      alert("Network error.");
+    }
   };
 
   if (!isMounted) return null;
@@ -1071,6 +1140,7 @@ export default function AdminControlPanel() {
                   { id: "campaigns", label: "Campaigns", icon: Rocket },
                   { id: "items", label: "Academic", icon: Package },
                   { id: "public", label: "Public Resources", icon: Users },
+                  { id: "blood", label: "Blood Donation", icon: Droplet },
                   { id: "users", label: "Users", icon: Users },
                   { id: "messages", label: "Messages", icon: MessageSquare },
                   { id: "settings", label: "System", icon: Settings }
@@ -1230,14 +1300,53 @@ export default function AdminControlPanel() {
                   <div className="space-y-6">
                     {/* BROADCAST BOX */}
                     <div className="bg-white/70 backdrop-blur-xl border border-white rounded-[2.5rem] p-8 shadow-xl">
-                      <div className="flex items-center justify-between mb-6"><h2 className="text-xl font-black text-slate-800">Live Marketing Broadcast</h2>{csvFileName && <button onClick={handleClearCSV} className="flex items-center gap-2 px-3 py-1.5 bg-rose-50 border border-rose-100 rounded-full hover:bg-rose-100 transition-colors group"><CheckCircle className="w-3 h-3 text-uiu-emerald" /><span className="text-[10px] font-bold text-slate-600 max-w-[120px] truncate">{csvFileName}</span><X className="w-3 h-3 text-rose-400 group-hover:text-rose-600 transition-colors" /></button>}</div>
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-black text-slate-800">Live Marketing Broadcast</h2>
+                        {csvFileName && (
+                          <button onClick={handleClearCSV} className="flex items-center gap-2 px-3 py-1.5 bg-rose-50 border border-rose-100 rounded-full hover:bg-rose-100 transition-colors group">
+                            <CheckCircle className="w-3 h-3 text-uiu-emerald" />
+                            <span className="text-[10px] font-bold text-slate-600 max-w-[120px] truncate">{csvFileName}</span>
+                            <X className="w-3 h-3 text-rose-400 group-hover:text-rose-600 transition-colors" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex bg-slate-100/50 p-1 rounded-2xl mb-6 border border-slate-200/50">
+                        <button onClick={() => { setBroadcastMode("email"); handleClearCSV(); }} className={`flex-1 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${broadcastMode === "email" ? "bg-white text-uiu-emerald shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>Email Broadcast</button>
+                        <button onClick={() => { setBroadcastMode("sms"); handleClearCSV(); }} className={`flex-1 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${broadcastMode === "sms" ? "bg-white text-uiu-orange shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>SMS Broadcast</button>
+                      </div>
+
                       <input ref={csvInputRef} type="file" className="hidden" accept=".csv" onChange={handleCSVUpload} />
                       {!csvFileName ? (
-                        <div onClick={() => csvInputRef.current?.click()} className="group relative w-full h-32 mb-6 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center gap-2 hover:border-uiu-emerald/50 hover:bg-emerald-50/30 transition-all cursor-pointer overflow-hidden"><UploadCloud className="w-8 h-8 text-slate-400 group-hover:text-uiu-emerald" /><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Upload Student CSV</p></div>
+                        <div onClick={() => csvInputRef.current?.click()} className="group relative w-full h-32 mb-6 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center gap-2 hover:border-uiu-emerald/50 hover:bg-emerald-50/30 transition-all cursor-pointer overflow-hidden">
+                          <UploadCloud className={`w-8 h-8 ${broadcastMode === "email" ? "text-uiu-emerald/40" : "text-uiu-orange/40"} group-hover:scale-110 transition-transform`} />
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Upload {broadcastMode === "email" ? "Email" : "SMS"} Student CSV</p>
+                        </div>
                       ) : (
                         <div className="mb-6 rounded-2xl overflow-hidden border border-emerald-100/60 bg-white/40 backdrop-blur-md shadow-sm">
-                          <div className="px-5 py-3 bg-emerald-50/80 border-b border-emerald-100/50 flex justify-between"><p className="text-[11px] font-black text-emerald-700">Parsed {csvRecords.length} records</p></div>
-                          <div className="max-h-40 overflow-y-auto no-scrollbar"><table className="w-full text-left"><thead className="bg-white/70"><tr><th className="px-4 py-2 text-[9px] font-black uppercase text-slate-400">Name</th><th className="px-4 py-2 text-[9px] font-black uppercase text-slate-400">Email</th></tr></thead><tbody>{csvRecords.map((r, i) => (<tr key={i} className="border-t border-slate-50"><td className="px-4 py-2 text-[10px] font-bold text-slate-600">{r.name}</td><td className="px-4 py-2 text-[10px] text-slate-400">{r.email}</td></tr>))}</tbody></table></div>
+                          <div className={`px-5 py-3 ${broadcastMode === "email" ? "bg-emerald-50/80" : "bg-orange-50/80"} border-b border-emerald-100/50 flex justify-between`}>
+                            <p className={`text-[11px] font-black ${broadcastMode === "email" ? "text-emerald-700" : "text-orange-700"}`}>Parsed {csvRecords.length} records</p>
+                          </div>
+                          <div className="max-h-40 overflow-y-auto no-scrollbar">
+                            <table className="w-full text-left">
+                              <thead className="bg-white/70">
+                                <tr>
+                                  <th className="px-4 py-2 text-[9px] font-black uppercase text-slate-400">Name</th>
+                                  <th className="px-4 py-2 text-[9px] font-black uppercase text-slate-400">{broadcastMode === "email" ? "Email" : "Phone Number"}</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {csvRecords.map((r, i) => (
+                                  <tr key={i} className="border-t border-slate-50">
+                                    <td className="px-4 py-2 text-[10px] font-bold text-slate-600">{r.name}</td>
+                                    <td className="px-4 py-2 text-[10px] text-slate-400 font-mono italic">
+                                      {broadcastMode === "email" ? r.email : r.phone}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       )}
                       <textarea value={smsPreview} onChange={(e) => setSmsPreview(e.target.value)} className="w-full p-4 bg-white/50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-600 h-24 outline-none mb-4" placeholder="Draft your broadcast message..." />
@@ -1252,10 +1361,31 @@ export default function AdminControlPanel() {
                       <div className="flex items-center justify-between mb-6"><h2 className="text-xl font-black text-slate-800">Broadcast Logs</h2><button onClick={refreshData} className="text-[10px] font-black text-uiu-emerald">Refresh</button></div>
                       <div className="overflow-hidden rounded-2xl border border-slate-100">
                         <table className="w-full text-left">
-                          <thead className="bg-slate-50/50 text-[9px] font-black uppercase text-slate-400"><tr><th className="px-5 py-3">Message</th><th className="px-5 py-3">Stats</th></tr></thead>
+                          <thead className="bg-slate-50/50 text-[9px] font-black uppercase text-slate-400">
+                            <tr>
+                              <th className="px-5 py-3">Message</th>
+                              <th className="px-5 py-3">Stats</th>
+                              <th className="px-5 py-3 text-right">Action</th>
+                            </tr>
+                          </thead>
                           <tbody className="divide-y divide-slate-50">
                             {broadcastHistory.slice(0, 5).map((h) => (
-                              <tr key={h.id} className="hover:bg-slate-50/50 transition-colors"><td className="px-5 py-4"><p className="text-[10px] font-bold text-slate-800 line-clamp-1">{h.message}</p></td><td className="px-5 py-4"><span className="text-[10px] font-black text-uiu-emerald">{h.successfulDeliveries}/{h.totalRecipients}</span></td></tr>
+                              <tr key={h.id} className="hover:bg-slate-50/50 transition-colors">
+                                <td className="px-5 py-4">
+                                  <p className="text-[10px] font-bold text-slate-800 line-clamp-1">{h.message}</p>
+                                </td>
+                                <td className="px-5 py-4">
+                                  <span className="text-[10px] font-black text-uiu-emerald">{h.successfulDeliveries}/{h.totalRecipients}</span>
+                                </td>
+                                <td className="px-5 py-4 text-right">
+                                  <button 
+                                    onClick={() => handleDeleteBroadcastLog(h.id)}
+                                    className="p-2 bg-rose-50 text-rose-400 hover:bg-rose-500 hover:text-white rounded-lg transition-all"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </td>
+                              </tr>
                             ))}
                           </tbody>
                         </table>
@@ -1273,20 +1403,20 @@ export default function AdminControlPanel() {
                               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{it.postedBy || it.postedByEmail || "User"}</p>
                             </div>
                             <div className="flex gap-2">
-                              <button 
+                              <button
                                 onClick={() => setSelectedItemForReview(it)}
                                 className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all shadow-sm"
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
-                              <button 
-                                onClick={() => handleItemAction(it, "Approved")} 
+                              <button
+                                onClick={() => handleItemAction(it, "Approved")}
                                 className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
                               >
                                 <Check className="w-4 h-4" />
                               </button>
-                              <button 
-                                onClick={() => handleItemAction(it, "Rejected")} 
+                              <button
+                                onClick={() => handleItemAction(it, "Rejected")}
                                 className="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm"
                               >
                                 <X className="w-4 h-4" />
@@ -1373,6 +1503,95 @@ export default function AdminControlPanel() {
                 </motion.div>
               )}
 
+              {activeTab === "blood" && (
+                <motion.div key="tab-blood" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2.5rem] p-8 shadow-xl">
+                  <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                      <Droplet className="w-7 h-7 text-red-500" /> Blood Donation Requests
+                    </h2>
+                    <div className="flex items-center gap-3">
+                      <span className="px-3 py-1.5 rounded-full bg-red-50 text-red-600 text-xs font-black border border-red-100">
+                        {bloodDonations.length} Total
+                      </span>
+                      <span className="px-3 py-1.5 rounded-full bg-orange-50 text-orange-600 text-xs font-black border border-orange-100">
+                        {bloodDonations.filter(b => b.urgent).length} Urgent
+                      </span>
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="border-b border-slate-100">
+                          <th className="pb-4 px-4 text-[10px] font-black uppercase text-slate-400">Blood Group</th>
+                          <th className="pb-4 px-4 text-[10px] font-black uppercase text-slate-400">Hospital / Location</th>
+                          <th className="pb-4 px-4 text-[10px] font-black uppercase text-slate-400">Contact</th>
+                          <th className="pb-4 px-4 text-[10px] font-black uppercase text-slate-400">Bags</th>
+                          <th className="pb-4 px-4 text-[10px] font-black uppercase text-slate-400">Posted By</th>
+                          <th className="pb-4 px-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {bloodDonations.length === 0 && (
+                          <tr><td colSpan={6} className="py-16 text-center text-slate-400 font-bold text-sm">No blood donation requests yet.</td></tr>
+                        )}
+                        {bloodDonations.map((item) => (
+                          <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-2">
+                                <span className={`px-3 py-1.5 rounded-full text-white text-xs font-black shadow-sm ${
+                                  item.bloodGroup === "O+" || item.bloodGroup === "O-" ? "bg-orange-500" :
+                                  item.bloodGroup?.startsWith("A") ? "bg-red-500" :
+                                  item.bloodGroup?.startsWith("B") ? "bg-blue-500" : "bg-purple-500"
+                                }`}>{item.bloodGroup}</span>
+                                {item.urgent && (
+                                  <span className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-red-50 text-red-500 text-[9px] font-black border border-red-100">
+                                    <Flame className="w-2.5 h-2.5" /> Urgent
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <p className="font-black text-slate-800 text-sm">{item.hospitalName}</p>
+                              <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1 mt-0.5">
+                                <MapPin className="w-2.5 h-2.5" />{item.location}
+                              </p>
+                            </td>
+                            <td className="py-4 px-4">
+                              <a href={`tel:${item.contactNumber}`} className="text-green-600 font-black text-sm hover:underline flex items-center gap-1">
+                                <Phone className="w-3 h-3" />{item.contactNumber}
+                              </a>
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className="font-black text-slate-700">{item.requiredBags}</span>
+                            </td>
+                            <td className="py-4 px-4">
+                              <p className="text-sm font-bold text-slate-600">{item.postedBy}</p>
+                              <p className="text-[10px] text-slate-400">{item.postedByEmail}</p>
+                            </td>
+                            <td className="py-4 px-4 text-right">
+                              <button
+                                onClick={async () => {
+                                  if (confirm("Delete this blood donation request?")) {
+                                    try {
+                                      const res = await fetch(`http://localhost:8080/api/blood-donation/${item.id}`, { method: "DELETE" });
+                                      if (res.ok) refreshData();
+                                      else alert("Delete failed.");
+                                    } catch { alert("Network error."); }
+                                  }
+                                }}
+                                className="p-2 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-500 hover:text-white transition-all"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </motion.div>
+              )}
+
               {activeTab === "users" && (
                 <motion.div key="tab-users" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2.5rem] p-8 shadow-xl">
                   <h2 className="text-2xl font-black text-slate-800 mb-8">User Directory</h2>
@@ -1391,13 +1610,53 @@ export default function AdminControlPanel() {
                 </motion.div>
               )}
 
-              {activeTab === "settings" && (
-                <motion.div key="tab-settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="bg-white/70 backdrop-blur-xl border border-white rounded-[2.5rem] p-8 shadow-xl">
-                    <h2 className="text-xl font-black text-slate-800 mb-6">Platform Security</h2>
-                    <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl">
-                      <div><p className="font-bold text-slate-800 text-sm">Maintenance Mode</p></div>
-                      <button onClick={() => handleUpdateSettings("maintenanceMode", !settings.maintenanceMode)} className={`w-12 h-6 rounded-full relative transition-colors ${settings.maintenanceMode ? "bg-rose-500" : "bg-slate-300"}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings.maintenanceMode ? "left-7" : "left-1"}`} /></button>
+               {activeTab === "settings" && (
+                <motion.div key="tab-settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                  <div className="bg-white/70 backdrop-blur-xl border border-white rounded-[2.5rem] p-8 shadow-xl flex flex-col gap-8">
+                    <div>
+                      <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-3">
+                        <Settings className="w-6 h-6 text-uiu-emerald" /> Platform Settings
+                      </h2>
+                      <div className="flex items-center justify-between p-5 bg-slate-50/50 rounded-2xl border border-slate-100">
+                        <div>
+                          <p className="font-black text-slate-800 text-sm">Maintenance Mode</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Disable platform for users</p>
+                        </div>
+                        <button onClick={() => handleUpdateSettings("maintenanceMode", !settings.maintenanceMode)} className={`w-12 h-6 rounded-full relative transition-colors ${settings.maintenanceMode ? "bg-rose-500" : "bg-slate-300"}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings.maintenanceMode ? "left-7" : "left-1"}`} /></button>
+                      </div>
+                    </div>
+
+                    <div className="p-6 rounded-[2rem] bg-indigo-50/30 border border-indigo-100/50 flex flex-col gap-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-white rounded-xl shadow-sm"><Zap className="w-5 h-5 text-indigo-500" /></div>
+                            <h3 className="text-sm font-black text-slate-800 tracking-tight">SMS Gateway Configuration</h3>
+                          </div>
+                          <button onClick={handleSaveSmsConfig} className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-100 transition-all active:scale-95">Save Config</button>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Gateway Endpoint</label>
+                            <input 
+                              type="text" 
+                              value={smsGatewayEndpoint} 
+                              onChange={(e) => setSmsGatewayEndpoint(e.target.value)} 
+                              placeholder="http://192.168.0.106:8082" 
+                              className="w-full px-5 py-3 rounded-2xl bg-white border border-slate-100 outline-none font-bold text-slate-700 text-xs shadow-sm" 
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Auth Token</label>
+                            <input 
+                              type="text" 
+                              value={smsGatewayToken} 
+                              onChange={(e) => setSmsGatewayToken(e.target.value)} 
+                              placeholder="b2c07958-bf84-46ff-b104-45c4f820d931" 
+                              className="w-full px-5 py-3 rounded-2xl bg-white border border-slate-100 outline-none font-bold text-slate-700 text-xs shadow-sm" 
+                            />
+                          </div>
+                        </div>
                     </div>
                   </div>
                 </motion.div>
@@ -1428,18 +1687,18 @@ export default function AdminControlPanel() {
       {/* RESOURCE REVIEW MODAL */}
       <AnimatePresence>
         {selectedItemForReview && (
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }} 
-            onClick={() => setSelectedItemForReview(null)} 
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedItemForReview(null)}
             className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md"
           >
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }} 
-              animate={{ opacity: 1, scale: 1, y: 0 }} 
-              exit={{ opacity: 0, scale: 0.9, y: 20 }} 
-              onClick={(e) => e.stopPropagation()} 
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
               className="w-full max-w-2xl bg-white border rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
               <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -1455,11 +1714,11 @@ export default function AdminControlPanel() {
                 {(selectedItemForReview.image || selectedItemForReview.downloadUrl || selectedItemForReview.fileUrl) ? (
                   <div className="w-full aspect-video rounded-3xl bg-slate-100 border border-slate-200 overflow-hidden relative group">
                     {selectedItemForReview.image ? (
-                      <img 
-                        src={selectedItemForReview.image.startsWith('http') || selectedItemForReview.image.startsWith('data:') 
-                          ? selectedItemForReview.image 
-                          : `data:image/png;base64,${selectedItemForReview.image}`} 
-                        alt="Preview" 
+                      <img
+                        src={selectedItemForReview.image.startsWith('http') || selectedItemForReview.image.startsWith('data:')
+                          ? selectedItemForReview.image
+                          : `data:image/png;base64,${selectedItemForReview.image}`}
+                        alt="Preview"
                         className="w-full h-full object-contain"
                       />
                     ) : (
@@ -1470,12 +1729,12 @@ export default function AdminControlPanel() {
                         <p className="text-sm font-black text-slate-600">Document/File Resource</p>
                       </div>
                     )}
-                    
+
                     {(selectedItemForReview.downloadUrl || selectedItemForReview.fileUrl) && (
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <a 
-                          href={selectedItemForReview.downloadUrl || selectedItemForReview.fileUrl} 
-                          target="_blank" 
+                        <a
+                          href={selectedItemForReview.downloadUrl || selectedItemForReview.fileUrl}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="px-8 py-3 bg-white text-blue-600 font-black rounded-full flex items-center gap-2 hover:scale-105 transition-all shadow-xl"
                         >
@@ -1519,13 +1778,13 @@ export default function AdminControlPanel() {
               </div>
 
               <div className="p-8 border-t border-slate-100 flex gap-4 bg-slate-50/50">
-                <button 
+                <button
                   onClick={() => { handleItemAction(selectedItemForReview, "Approved"); setSelectedItemForReview(null); }}
                   className="flex-1 py-4 bg-uiu-emerald hover:bg-emerald-600 text-white font-black rounded-2xl shadow-lg shadow-emerald-100 transition-all flex items-center justify-center gap-2"
                 >
                   <Check className="w-5 h-5" /> Approve Resource
                 </button>
-                <button 
+                <button
                   onClick={() => { handleItemAction(selectedItemForReview, "Rejected"); setSelectedItemForReview(null); }}
                   className="flex-1 py-4 bg-rose-500 hover:bg-rose-600 text-white font-black rounded-2xl shadow-lg shadow-rose-100 transition-all flex items-center justify-center gap-2"
                 >

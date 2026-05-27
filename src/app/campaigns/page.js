@@ -43,46 +43,7 @@ export default function CampaignsPage() {
         }
 
         // Transform the data to ensure UI compatibility
-        const mapped = resultData.map(c => {
-          const extra = mockDb.getCampaignExtras(c.title) || {};
-
-          // FORCE use extra.image if it exists because backend image is broken (404)
-          let imageUrl = extra.image || c.image || c.imagePath;
-          if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('blob:') && !imageUrl.startsWith('data:')) {
-            imageUrl = `http://localhost:8080/${imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl}`;
-          }
-
-          // Handle Progress: Calculate if missing but goal/collected exist
-          let goal = extra.goal || c.goal || 0;
-          let progress = c.progress;
-          if (progress === undefined || progress === null) {
-            const parsedGoal = parseFloat(goal) || 0;
-            const collected = parseFloat(c.collected) || 0;
-            progress = parsedGoal > 0 ? Math.round((collected / parsedGoal) * 100) : 0;
-          }
-
-          // Use shared helper for expiry (synced with countdown timer localStorage key)
-          const isExpired = mockDb.isCampaignExpired({ ...c, goal });
-
-          // Calculate daysLeft for display
-          let calcDaysLeft = c.daysLeft || 0;
-          const storedEnd = (typeof window !== 'undefined') ? localStorage.getItem(`ecoKnot_endTime_${c.id?.toString() || c.title}`) : null;
-          if (storedEnd) {
-            calcDaysLeft = Math.max(0, Math.ceil((parseInt(storedEnd) - Date.now()) / 86400000));
-          } else if (c.endTime) {
-            calcDaysLeft = Math.max(0, Math.ceil((new Date(c.endTime).getTime() - Date.now()) / 86400000));
-          }
-
-
-          return {
-            ...c,
-            image: imageUrl,
-            goal: goal,
-            progress: progress,
-            daysLeft: calcDaysLeft,
-            isExpired: isExpired
-          };
-        });
+        const mapped = resultData.map(c => mockDb.mapCampaign(c));
 
         // ── Auto-hide expired campaigns from user view ──────────────────────
         const active = mapped.filter(c => !c.isExpired);

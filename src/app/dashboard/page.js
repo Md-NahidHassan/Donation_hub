@@ -26,7 +26,11 @@ import {
   MessageCircle,
   CheckCircle,
   AlertCircle,
-  X
+  X,
+  Droplets,
+  Flame,
+  Phone,
+  MapPin
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -57,6 +61,7 @@ function DashboardContent() {
   const [userPoints, setUserPoints] = useState(0);
   const [userBadge, setUserBadge] = useState({ name: "Eco Seedling", icon: "🌱", color: "from-emerald-400 to-teal-500" });
   const [publicResources, setPublicResources] = useState([]);
+  const [bloodDonations, setBloodDonations] = useState([]);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -104,6 +109,15 @@ function DashboardContent() {
         if (resPublic.ok) {
           publicBackendItems = await resPublic.json();
         }
+
+        // Fetch Blood Donations
+        try {
+          const resBlood = await fetch("http://localhost:8080/api/blood-donation");
+          if (resBlood.ok) {
+            const bloodData = await resBlood.json();
+            setBloodDonations(bloodData.slice(0, 4));
+          }
+        } catch {}
       } catch (err) {
         console.warn("Dashboard resources fetch failed:", err);
       }
@@ -182,38 +196,15 @@ function DashboardContent() {
         const mockCampaigns = mockDb.getCampaigns();
 
         // Map backend with hybrid overlay
-        const mappedBackend = backendCampaigns.map(c => {
-          const extra = mockDb.getCampaignExtras(c.title) || mockDb.getCampaignExtras(c.id?.toString()) || {};
-          let imageUrl = extra.image || c.image || c.imagePath;
-          if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('blob:') && !imageUrl.startsWith('data:')) {
-            imageUrl = `http://localhost:8080/${imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl}`;
-          }
-          let progress = c.progress;
-          if (progress === undefined || progress === null) {
-            const goal = parseFloat(extra.goal || c.goal) || 0;
-            const collected = parseFloat(c.collected) || 0;
-            progress = goal > 0 ? Math.round((collected / goal) * 100) : 0;
-          }
-          return {
-            ...c,
-            _uniqueId: `backend-${c.id}`,
-            image: imageUrl,
-            progress: progress,
-            goal: extra.goal || c.goal
-          };
-        });
+        const mappedBackend = backendCampaigns.map(c => mockDb.mapCampaign(c));
 
         const backendTitles = new Set(mappedBackend.map(c => c.title.toLowerCase()));
         const uniqueMock = mockCampaigns
           .filter(c => !backendTitles.has(c.title.toLowerCase()))
-          .map(c => ({ ...c, _uniqueId: `mock-${c.id}` }));
+          .map(c => mockDb.mapCampaign(c));
 
         const combined = [...mappedBackend, ...uniqueMock]
-          .filter(c => {
-            // Check if expired using mockDb helper
-            const expired = mockDb.isCampaignExpired(c);
-            return !expired;
-          })
+          .filter(c => !c.isExpired)
           .reverse()
           .slice(0, 4);
         
@@ -278,6 +269,7 @@ function DashboardContent() {
     { name: "Browse Items", icon: Package, active: true, href: "/dashboard" },
     { name: "Messages", icon: MessageCircle, active: false, href: "/chat", badge: hasUnread },
     { name: "My Requests", icon: Activity, active: false, href: "/user-panel" },
+    { name: "Blood Donation", icon: Droplets, active: false, href: "/blood-donation" },
     { name: "Academic Resources", icon: GraduationCap, active: false, href: "/academic-resources" },
     { name: "Public Resources", icon: Users2, active: false, href: "/public-resources" },
     { name: "Campaigns", icon: HeartHandshake, active: false, href: "/public-campaigns" },
@@ -467,6 +459,73 @@ function DashboardContent() {
                 <h3 className="text-4xl font-black text-slate-900 tracking-tight">{stat.value}</h3>
               </motion.div>
             ))}
+          </div>
+
+          {/* ── BLOOD DONATION SECTION ──────────────────────────────────────── */}
+          <div className="mb-16">
+            <div className="flex justify-between items-end mb-8">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-2 bg-red-50 rounded-xl border border-red-100">
+                    <Droplets className="w-4 h-4 text-red-500" />
+                  </div>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Blood Donation</h3>
+                </div>
+                <p className="text-slate-500 font-medium">Recent urgent blood requests from the community.</p>
+              </div>
+              <Link href="/blood-donation" className="text-red-500 font-black text-xs hover:underline flex items-center gap-1 mb-1">
+                View All <ArrowUpRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+              {bloodDonations.length > 0 ? bloodDonations.map((item, i) => (
+                <motion.div
+                  key={`blood-${item.id}`}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.08 }}
+                >
+                  <motion.div whileHover={{ y: -6 }}
+                    className="group bg-white/60 backdrop-blur-xl rounded-[2rem] border border-white/80 shadow-sm overflow-hidden hover:shadow-xl transition-all flex flex-col h-full">
+                    <div className={`h-28 relative flex items-center justify-center overflow-hidden ${
+                      item.urgent ? "bg-gradient-to-br from-red-500 to-rose-600" : "bg-gradient-to-br from-rose-100 to-red-50"
+                    }`}>
+                      <span className={`text-5xl font-black tracking-tighter select-none ${
+                        item.urgent ? "text-white/80" : "text-red-400/30"
+                      }`}>{item.bloodGroup}</span>
+                      <div className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-white text-xs font-black shadow-sm ${
+                        item.bloodGroup === "O+" || item.bloodGroup === "O-" ? "bg-orange-500" :
+                        item.bloodGroup?.startsWith("A") ? "bg-red-500" :
+                        item.bloodGroup?.startsWith("B") ? "bg-blue-500" : "bg-purple-500"
+                      }`}>{item.bloodGroup}</div>
+                      {item.urgent && (
+                        <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 text-white text-[9px] font-black">
+                          <Flame className="w-2.5 h-2.5" /> Urgent
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4 flex-1 flex flex-col bg-white/80">
+                      <h4 className="text-base font-black text-slate-900 mb-2 line-clamp-1">{item.hospitalName}</h4>
+                      <div className="space-y-1 text-[11px] font-bold text-slate-500 mb-3">
+                        <div className="flex items-center gap-1"><MapPin className="w-3 h-3 text-rose-400" />{item.location}</div>
+                        <div className="flex items-center gap-1"><Phone className="w-3 h-3 text-green-500" />{item.contactNumber}</div>
+                      </div>
+                      <Link href={`/blood-donation-details?id=${item.id}`}
+                        className="mt-auto w-full py-2.5 rounded-xl font-black text-white text-xs bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 shadow-md transition-all flex items-center justify-center gap-1.5">
+                        View Request <ArrowUpRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )) : (
+                <div className="col-span-full py-16 text-center text-slate-400 font-medium italic bg-white/30 rounded-[2rem] border border-dashed border-red-100">
+                  <Droplets className="w-10 h-10 text-red-200 mx-auto mb-3" />
+                  No blood donation requests yet.
+                  <Link href="/blood-donation" className="block mt-2 text-red-500 font-black text-sm hover:underline">Post the first request →</Link>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* MARKETPLACE FEED */}

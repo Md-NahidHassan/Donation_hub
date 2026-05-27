@@ -20,6 +20,7 @@ import {
   Trash2,
   Target,
   Clock,
+  QrCode,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -201,6 +202,9 @@ export default function CreateCampaignPage() {
       return new Blob([uInt8Array], { type: contentType });
     };
 
+    // Filter out empty bank accounts
+    const validBanks = bankAccounts.filter(b => b.bankName || b.accountNumber);
+
     // Unified QR & Bank logic for the new backend
     const unifiedList = [
       ...paymentQRs.filter(qr => qr.provider),
@@ -231,8 +235,6 @@ export default function CreateCampaignPage() {
       }
     });
     
-    // Filter out empty bank accounts and send as JSON string
-    const validBanks = bankAccounts.filter(b => b.bankName || b.accountNumber);
     fd.append("bankAccounts", JSON.stringify(validBanks));
 
     if (imageFile) {
