@@ -41,7 +41,8 @@ import {
   Flame,
   Phone,
   MapPin,
-  Clock
+  Clock,
+  PackageSearch
 } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import Link from "next/link";
@@ -445,6 +446,7 @@ export default function AdminControlPanel() {
   const [bankAccounts, setBankAccounts] = useState([{ id: 1, bankName: "", accountName: "", accountNumber: "", branch: "" }]);
 
   const [bloodDonations, setBloodDonations] = useState([]);
+  const [needResources, setNeedResources] = useState([]);
   const [adminRooms, setAdminRooms] = useState([]);
 
   useEffect(() => {
@@ -581,6 +583,13 @@ export default function AdminControlPanel() {
       if (resBlood.ok) setBloodDonations(await resBlood.json());
     } catch (err) {
       console.warn("Failed to fetch blood donations:", err);
+    }
+
+    try {
+      const resNeed = await fetch("http://localhost:8080/api/need-resource");
+      if (resNeed.ok) setNeedResources(await resNeed.json());
+    } catch (err) {
+      console.warn("Failed to fetch need resources:", err);
     }
 
     try {
@@ -1141,6 +1150,7 @@ export default function AdminControlPanel() {
                   { id: "items", label: "Academic", icon: Package },
                   { id: "public", label: "Public Resources", icon: Users },
                   { id: "blood", label: "Blood Donation", icon: Droplet },
+                  { id: "need", label: "Need Resource", icon: PackageSearch },
                   { id: "users", label: "Users", icon: Users },
                   { id: "messages", label: "Messages", icon: MessageSquare },
                   { id: "settings", label: "System", icon: Settings }
@@ -1592,6 +1602,76 @@ export default function AdminControlPanel() {
                 </motion.div>
               )}
 
+              {activeTab === "need" && (
+                <motion.div key="tab-need" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2.5rem] p-8 shadow-xl">
+                  <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                      <PackageSearch className="w-7 h-7 text-indigo-500" /> Need Resource Requests
+                    </h2>
+                    <div className="flex items-center gap-3">
+                      <span className="px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-600 text-xs font-black border border-indigo-100">
+                        {needResources.length} Total
+                      </span>
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="border-b border-slate-100">
+                          <th className="pb-4 px-4 text-[10px] font-black uppercase text-slate-400">Category</th>
+                          <th className="pb-4 px-4 text-[10px] font-black uppercase text-slate-400">Title</th>
+                          <th className="pb-4 px-4 text-[10px] font-black uppercase text-slate-400">Urgency</th>
+                          <th className="pb-4 px-4 text-[10px] font-black uppercase text-slate-400">Posted By</th>
+                          <th className="pb-4 px-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {needResources.length === 0 && (
+                          <tr><td colSpan={5} className="py-16 text-center text-slate-400 font-bold text-sm">No need requests yet.</td></tr>
+                        )}
+                        {needResources.map((item) => (
+                          <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="py-4 px-4">
+                              <span className={`w-max px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${item.category === "Academic" ? "bg-indigo-100 text-indigo-700" : "bg-teal-100 text-teal-700"}`}>
+                                {item.category}
+                              </span>
+                            </td>
+                            <td className="py-4 px-4">
+                              <p className="font-black text-slate-800 text-sm max-w-[200px] truncate" title={item.requestTitle}>{item.requestTitle}</p>
+                            </td>
+                            <td className="py-4 px-4">
+                              <p className={`text-[10px] font-black uppercase tracking-widest ${item.urgencyLevel === 'Urgent' ? 'text-rose-500' : item.urgencyLevel === 'High' ? 'text-orange-500' : 'text-slate-500'}`}>
+                                {item.urgencyLevel}
+                              </p>
+                            </td>
+                            <td className="py-4 px-4">
+                              <p className="text-sm font-bold text-slate-600 truncate max-w-[150px]">{item.postedBy}</p>
+                              <p className="text-[10px] text-slate-400 truncate max-w-[150px]">{item.postedByEmail}</p>
+                            </td>
+                            <td className="py-4 px-4 text-right">
+                              <button
+                                onClick={async () => {
+                                  if (confirm("Delete this need request?")) {
+                                    try {
+                                      const res = await fetch(`http://localhost:8080/api/need-resource/${item.id}`, { method: "DELETE" });
+                                      if (res.ok) refreshData();
+                                      else alert("Delete failed.");
+                                    } catch { alert("Network error."); }
+                                  }
+                                }}
+                                className="p-2 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-500 hover:text-white transition-all"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </motion.div>
+              )}
+              
               {activeTab === "users" && (
                 <motion.div key="tab-users" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="bg-white/70 backdrop-blur-xl border border-white rounded-[2.5rem] p-8 shadow-xl">
                   <h2 className="text-2xl font-black text-slate-800 mb-8">User Directory</h2>

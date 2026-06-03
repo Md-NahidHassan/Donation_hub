@@ -43,7 +43,13 @@ const bloodBadge = (bg) => {
 function formatDateTime(dt) {
   if (!dt) return "—";
   try {
-    const d = new Date(dt.includes("T") ? dt : dt.replace(" ", "T"));
+    let dateStr = dt;
+    if (Array.isArray(dt)) {
+      dateStr = `${dt[0]}-${String(dt[1]).padStart(2,'0')}-${String(dt[2]).padStart(2,'0')}T${String(dt[3]||0).padStart(2,'0')}:${String(dt[4]||0).padStart(2,'0')}`;
+    } else {
+      dateStr = String(dt).replace(" ", "T");
+    }
+    const d = new Date(dateStr);
     return d.toLocaleString("en-BD", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
   } catch { return dt; }
 }
@@ -242,11 +248,11 @@ function BloodDonationDetailsContent() {
         {/* BACK BUTTON */}
         <header className="mb-8 md:mb-12">
           <Link
-            href="/blood-donation"
+            href="/dashboard"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/50 backdrop-blur-md border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-slate-700 font-bold hover:bg-white/90 hover:text-slate-900 transition-all group w-max"
           >
             <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            Back to Blood Donation
+            Back to Dashboard
           </Link>
         </header>
 

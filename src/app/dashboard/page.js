@@ -30,7 +30,8 @@ import {
   Droplets,
   Flame,
   Phone,
-  MapPin
+  MapPin,
+  PackageSearch
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -62,6 +63,7 @@ function DashboardContent() {
   const [userBadge, setUserBadge] = useState({ name: "Eco Seedling", icon: "🌱", color: "from-emerald-400 to-teal-500" });
   const [publicResources, setPublicResources] = useState([]);
   const [bloodDonations, setBloodDonations] = useState([]);
+  const [needResources, setNeedResources] = useState([]);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -115,9 +117,18 @@ function DashboardContent() {
           const resBlood = await fetch("http://localhost:8080/api/blood-donation");
           if (resBlood.ok) {
             const bloodData = await resBlood.json();
-            setBloodDonations(bloodData.slice(0, 4));
+            setBloodDonations(bloodData.reverse().slice(0, 4));
           }
-        } catch {}
+        } catch { }
+
+        // Fetch Need Resources
+        try {
+          const resNeed = await fetch("http://localhost:8080/api/need-resource");
+          if (resNeed.ok) {
+            const needData = await resNeed.json();
+            setNeedResources(needData.reverse().slice(0, 4));
+          }
+        } catch { }
       } catch (err) {
         console.warn("Dashboard resources fetch failed:", err);
       }
@@ -157,15 +168,15 @@ function DashboardContent() {
       };
 
       // 4. Split into Academic and Public with robust fallback
-      const academicOnly = allApproved.filter(it => 
-        it.type === "academic" || 
-        it.subject || 
+      const academicOnly = allApproved.filter(it =>
+        it.type === "academic" ||
+        it.subject ||
         (!it.type && !it.category && it.resourceCondition)
       );
-      
-      const publicOnly = allApproved.filter(it => 
-        it.type === "public" || 
-        it.category || 
+
+      const publicOnly = allApproved.filter(it =>
+        it.type === "public" ||
+        it.category ||
         (!it.type && it.image && !it.subject)
       );
 
@@ -207,7 +218,7 @@ function DashboardContent() {
           .filter(c => !c.isExpired)
           .reverse()
           .slice(0, 4);
-        
+
         console.log("Dashboard active campaigns:", combined.length);
         setCampaigns(combined);
         setIsLoadingCampaigns(false);
@@ -244,7 +255,7 @@ function DashboardContent() {
 
   // Messages Unread State
   const [hasUnread, setHasUnread] = useState(false);
-  
+
   useEffect(() => {
     const userStr = localStorage.getItem("user");
     if (!userStr) return;
@@ -252,13 +263,13 @@ function DashboardContent() {
     const myId = u.firebaseUid || u.email;
 
     const q = query(
-        collection(db, "chatRooms"),
-        where("participants", "array-contains", myId)
+      collection(db, "chatRooms"),
+      where("participants", "array-contains", myId)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-        const unread = snapshot.docs.some(doc => doc.data().unreadBy?.includes(myId));
-        setHasUnread(unread);
+      const unread = snapshot.docs.some(doc => doc.data().unreadBy?.includes(myId));
+      setHasUnread(unread);
     });
 
     return () => unsubscribe();
@@ -270,6 +281,7 @@ function DashboardContent() {
     { name: "Messages", icon: MessageCircle, active: false, href: "/chat", badge: hasUnread },
     { name: "My Requests", icon: Activity, active: false, href: "/user-panel" },
     { name: "Blood Donation", icon: Droplets, active: false, href: "/blood-donation" },
+    { name: "Need Resource", icon: PackageSearch, active: false, href: "/need-resource" },
     { name: "Academic Resources", icon: GraduationCap, active: false, href: "/academic-resources" },
     { name: "Public Resources", icon: Users2, active: false, href: "/public-resources" },
     { name: "Campaigns", icon: HeartHandshake, active: false, href: "/public-campaigns" },
@@ -289,8 +301,8 @@ function DashboardContent() {
             className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md px-6"
           >
             <div className={`p-5 rounded-[2rem] backdrop-blur-2xl border shadow-2xl flex items-center justify-between gap-4 ${paymentStatus === "success"
-                ? "bg-emerald-50/90 border-emerald-100 text-emerald-900"
-                : "bg-rose-50/90 border-rose-100 text-rose-900"
+              ? "bg-emerald-50/90 border-emerald-100 text-emerald-900"
+              : "bg-rose-50/90 border-rose-100 text-rose-900"
               }`}>
               <div className="flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${paymentStatus === "success" ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
@@ -436,7 +448,7 @@ function DashboardContent() {
             </div>
           </header>
 
-          {/* STATS SECTION */}
+          {/* STATS SECTION
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             {[
               { label: "Items Donated", value: "12", icon: Package, color: "text-uiu-emerald", bg: "bg-emerald-500/10" },
@@ -459,7 +471,7 @@ function DashboardContent() {
                 <h3 className="text-4xl font-black text-slate-900 tracking-tight">{stat.value}</h3>
               </motion.div>
             ))}
-          </div>
+          </div> */}
 
           {/* ── BLOOD DONATION SECTION ──────────────────────────────────────── */}
           <div className="mb-16">
@@ -488,17 +500,14 @@ function DashboardContent() {
                 >
                   <motion.div whileHover={{ y: -6 }}
                     className="group bg-white/60 backdrop-blur-xl rounded-[2rem] border border-white/80 shadow-sm overflow-hidden hover:shadow-xl transition-all flex flex-col h-full">
-                    <div className={`h-28 relative flex items-center justify-center overflow-hidden ${
-                      item.urgent ? "bg-gradient-to-br from-red-500 to-rose-600" : "bg-gradient-to-br from-rose-100 to-red-50"
-                    }`}>
-                      <span className={`text-5xl font-black tracking-tighter select-none ${
-                        item.urgent ? "text-white/80" : "text-red-400/30"
-                      }`}>{item.bloodGroup}</span>
-                      <div className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-white text-xs font-black shadow-sm ${
-                        item.bloodGroup === "O+" || item.bloodGroup === "O-" ? "bg-orange-500" :
-                        item.bloodGroup?.startsWith("A") ? "bg-red-500" :
-                        item.bloodGroup?.startsWith("B") ? "bg-blue-500" : "bg-purple-500"
-                      }`}>{item.bloodGroup}</div>
+                    <div className={`h-28 relative flex items-center justify-center overflow-hidden ${item.urgent ? "bg-gradient-to-br from-red-500 to-rose-600" : "bg-gradient-to-br from-rose-100 to-red-50"
+                      }`}>
+                      <span className={`text-5xl font-black tracking-tighter select-none ${item.urgent ? "text-white/80" : "text-red-400/30"
+                        }`}>{item.bloodGroup}</span>
+                      <div className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-white text-xs font-black shadow-sm ${item.bloodGroup === "O+" || item.bloodGroup === "O-" ? "bg-orange-500" :
+                          item.bloodGroup?.startsWith("A") ? "bg-red-500" :
+                            item.bloodGroup?.startsWith("B") ? "bg-blue-500" : "bg-purple-500"
+                        }`}>{item.bloodGroup}</div>
                       {item.urgent && (
                         <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 text-white text-[9px] font-black">
                           <Flame className="w-2.5 h-2.5" /> Urgent
@@ -523,6 +532,49 @@ function DashboardContent() {
                   <Droplets className="w-10 h-10 text-red-200 mx-auto mb-3" />
                   No blood donation requests yet.
                   <Link href="/blood-donation" className="block mt-2 text-red-500 font-black text-sm hover:underline">Post the first request →</Link>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── NEED RESOURCE SECTION ──────────────────────────────────────── */}
+          <div className="mb-16">
+            <div className="flex justify-between items-end mb-8">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-2 bg-blue-50 rounded-xl border border-blue-100">
+                    <PackageSearch className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Need Resource</h3>
+                </div>
+                <p className="text-slate-500 font-medium">Community requests for academic or public items.</p>
+              </div>
+              <Link href="/need-resource" className="text-blue-500 font-black text-xs hover:underline flex items-center gap-1 mb-1">
+                View All <ArrowUpRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+              {needResources.length > 0 ? needResources.map((item, i) => (
+                <motion.div key={`need-${item.id}`} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.08 }}>
+                  <motion.div whileHover={{ y: -6 }} className="group bg-white/60 backdrop-blur-xl rounded-[2rem] border border-white/80 shadow-sm overflow-hidden flex flex-col h-full hover:shadow-xl transition-all">
+                    <div className="p-5 border-b border-slate-100/50 flex flex-col gap-2">
+                       <span className={`w-max px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${item.category === "Academic" ? "bg-indigo-100 text-indigo-700" : "bg-teal-100 text-teal-700"}`}>
+                         {item.category}
+                       </span>
+                       <h4 className="text-base font-black text-slate-900 line-clamp-2 leading-tight">{item.requestTitle}</h4>
+                    </div>
+                    <div className="p-5 flex-1 flex flex-col bg-white/80">
+                      <p className="text-slate-500 font-medium text-xs line-clamp-3 mb-4 italic">"{item.description}"</p>
+                      <Link href={`/need-resource-details?id=${item.id}`} className="mt-auto w-full py-2.5 rounded-xl font-black text-white text-xs bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 shadow-md transition-all flex items-center justify-center gap-1.5 focus:ring-2 focus:ring-blue-500/20">
+                         View Details <ArrowUpRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )) : (
+                <div className="col-span-full py-12 text-center text-slate-400 font-medium italic bg-white/30 rounded-[2rem] border border-dashed border-blue-100">
+                  <PackageSearch className="w-8 h-8 text-blue-200 mx-auto mb-3" /> No pending requests.
                 </div>
               )}
             </div>
@@ -619,8 +671,8 @@ function DashboardContent() {
                     <div className="p-5 flex-1 flex flex-col bg-white/80">
                       <div className="text-[10px] font-black text-uiu-emerald uppercase tracking-widest mb-1">{item.category || "Community"}</div>
                       <h4 className="text-lg font-black text-slate-800 mb-4 line-clamp-1">{item.title}</h4>
-                      <Link 
-                        href={`/resource-details?id=${item.id}&type=public`} 
+                      <Link
+                        href={`/resource-details?id=${item.id}&type=public`}
                         className="mt-auto w-full py-3 rounded-xl font-black text-white text-xs bg-uiu-emerald hover:bg-emerald-600 shadow-md transition-all flex items-center justify-center gap-2"
                       >
                         View Item <ArrowUpRight className="w-3.5 h-3.5" />
