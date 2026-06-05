@@ -39,6 +39,8 @@ import { Suspense } from "react";
 import { mockDb } from "@/utils/mockDb";
 import { db } from "@/utils/firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 
 export default function DashboardPage() {
   return (
@@ -58,6 +60,11 @@ function DashboardContent() {
   const [marketplaceItems, setMarketplaceItems] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
   const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(true);
+
+  // Notifications logic
+  const [notifications, setNotifications] = useState([]);
+  const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [campaignsError, setCampaignsError] = useState(null);
   const [userPoints, setUserPoints] = useState(0);
   const [userBadge, setUserBadge] = useState({ name: "Eco Seedling", icon: "🌱", color: "from-emerald-400 to-teal-500" });
@@ -275,8 +282,52 @@ function DashboardContent() {
     return () => unsubscribe();
   }, []);
 
+  // Notifications fetch & sub
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (!userStr) return;
+    const user = JSON.parse(userStr);
+    
+    // Fetch initial notifications
+    fetch(`http://localhost:8080/api/notifications/${encodeURIComponent(user.email)}`)
+      .then(res => { if (!res.ok) throw new Error('Network error'); return res.json(); })
+      .then(data => {
+        if (Array.isArray(data)) {
+          setNotifications(data);
+          setUnreadNotificationCount(data.filter(n => !n.isRead).length);
+        }
+      })
+      .catch(err => console.warn('Notifications fetch failed:', err));
+
+    const stompClient = new Client({
+      webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+      onConnect: () => {
+        stompClient.subscribe(`/topic/notifications/${user.email}`, (message) => {
+          const newNotif = JSON.parse(message.body);
+          setNotifications(prev => [newNotif, ...prev]);
+          setUnreadNotificationCount(prev => prev + 1);
+        });
+      }
+    });
+    stompClient.activate();
+
+    return () => stompClient.deactivate();
+  }, []);
+
+  const handleNotificationClick = async (notif) => {
+    if (!notif.isRead) {
+      try {
+        await fetch(`http://localhost:8080/api/notifications/mark-read/${notif.id}`, { method: 'PUT' });
+        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+        setUnreadNotificationCount(prev => Math.max(0, prev - 1));
+      } catch (err) { console.error(err); }
+    }
+    setShowNotificationDropdown(false);
+  };
+
   // Sidebar Links Configuration
   const navLinks = [
+    { name: "Notification", icon: Bell, active: false, action: () => setShowNotificationDropdown(!showNotificationDropdown), dropdown: true, badge: unreadNotificationCount > 0 },
     { name: "Browse Items", icon: Package, active: true, href: "/dashboard" },
     { name: "Messages", icon: MessageCircle, active: false, href: "/chat", badge: hasUnread },
     { name: "My Requests", icon: Activity, active: false, href: "/user-panel" },
@@ -375,6 +426,72 @@ function DashboardContent() {
         <nav className="flex-1 flex flex-col gap-2">
           {navLinks.map((link) => {
             const Icon = link.icon;
+            
+            if (link.action) {
+              return (
+                <div key={link.name} className="relative">
+                  <button
+                    onClick={link.action}
+                    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl font-bold transition-all group ${link.active
+                      ? "bg-white text-slate-900 shadow-[0_10px_20px_-10px_rgba(0,0,0,0.08)] border border-slate-100"
+                      : "text-slate-500 hover:bg-white/50 hover:text-slate-800"
+                      }`}
+                  >
+                    <div className={`p-2 rounded-xl transition-colors relative ${link.active ? 'bg-emerald-50 text-uiu-emerald' : 'bg-transparent text-slate-400 group-hover:bg-white'}`}>
+                      <Icon className="w-5 h-5" />
+                      {link.badge && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full border-2 border-white flex items-center justify-center text-[8px] text-white">
+                          {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                        </div>
+                      )}
+                    </div>
+                    {link.name}
+                  </button>
+
+                  {link.dropdown && showNotificationDropdown && (
+                    <div className="absolute top-14 left-0 w-80 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-100 p-2 z-[100]">
+                      <div className="flex justify-between items-center px-3 py-2 mb-2 border-b border-slate-50">
+                        <h3 className="font-black tracking-tight text-slate-800">Notifications</h3>
+                        <span className="text-[10px] font-black uppercase text-slate-400">{unreadNotificationCount} Unread</span>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto custom-scrollbar flex flex-col gap-1">
+                        {notifications.slice(0, 10).map((notif) => (
+                          <Link
+                            key={notif.id}
+                            href={
+                              notif.postType === "BLOOD_DONATION" ? `/blood-donation-details?id=${notif.postId}`
+                              : notif.postType === "ACADEMIC" ? `/resource-details?id=${notif.postId}`
+                              : notif.postType === "PUBLIC" ? `/item-details?id=${notif.postId}`
+                              : notif.postType === "NEED_RESOURCE" ? `/need-resource-details?id=${notif.postId}`
+                              : notif.postType === "CAMPAIGN" ? `/campaign-details?id=${notif.postId}`
+                              : "#"
+                            }
+                            onClick={() => handleNotificationClick(notif)}
+                            className={`p-3 rounded-xl transition-all ${
+                              notif.isRead ? "opacity-70 hover:bg-slate-50" : "bg-emerald-50/50 hover:bg-emerald-50 border border-emerald-100/50"
+                            }`}
+                          >
+                            <p className="text-[12px] font-bold text-slate-700 leading-tight">
+                              {notif.message}
+                            </p>
+                            <p className="text-[10px] font-semibold text-slate-400 mt-1 uppercase">
+                              {notif.postType?.replace('_', ' ')}
+                            </p>
+                          </Link>
+                        ))}
+                        {notifications.length === 0 && (
+                          <div className="py-8 text-center">
+                            <Bell className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+                            <p className="text-slate-400 font-bold text-xs uppercase">All caught up!</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <Link
                 key={link.name}
