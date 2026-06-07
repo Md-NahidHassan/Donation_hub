@@ -57,6 +57,8 @@ export default function DashboardPage() {
 function DashboardContent() {
   const [isMounted, setIsMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null); // null = all
   const [marketplaceItems, setMarketplaceItems] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
   const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(true);
@@ -119,21 +121,21 @@ function DashboardContent() {
           publicBackendItems = await resPublic.json();
         }
 
-        // Fetch Blood Donations
+        // Fetch Blood Donations (backend returns newest first)
         try {
-          const resBlood = await fetch("http://localhost:8080/api/blood-donation");
+          const resBlood = await fetch("http://localhost:8080/api/blood-donation", { cache: "no-store" });
           if (resBlood.ok) {
             const bloodData = await resBlood.json();
-            setBloodDonations(bloodData.reverse().slice(0, 4));
+            setBloodDonations(bloodData.slice(0, 4));
           }
         } catch { }
 
-        // Fetch Need Resources
+        // Fetch Need Resources (backend returns newest first)
         try {
-          const resNeed = await fetch("http://localhost:8080/api/need-resource");
+          const resNeed = await fetch("http://localhost:8080/api/need-resource", { cache: "no-store" });
           if (resNeed.ok) {
             const needData = await resNeed.json();
-            setNeedResources(needData.reverse().slice(0, 4));
+            setNeedResources(needData.slice(0, 4));
           }
         } catch { }
       } catch (err) {
@@ -339,6 +341,34 @@ function DashboardContent() {
     { name: "Settings", icon: Settings, active: false, href: "/settings" },
   ];
 
+  // ── SEARCH LOGIC ────────────────────────────────────────────────────────────
+  const q = searchQuery.trim().toLowerCase();
+  const isSearching = q.length > 0 || selectedCategory !== null;
+
+  const CATEGORIES = [
+    { id: "blood",    label: "Blood Donation",    icon: Droplets,      color: "text-red-500",     bg: "bg-red-50",      border: "border-red-200",      activeBg: "bg-red-500",      tag: "Blood Request",   tagColor: "text-red-500 bg-red-50"   },
+    { id: "need",     label: "Need Resource",      icon: PackageSearch, color: "text-blue-500",    bg: "bg-blue-50",     border: "border-blue-200",     activeBg: "bg-blue-500",     tag: "Need Resource",   tagColor: "text-blue-500 bg-blue-50"  },
+    { id: "academic", label: "Academic Resource",  icon: GraduationCap, color: "text-orange-500",  bg: "bg-orange-50",   border: "border-orange-200",   activeBg: "bg-orange-500",   tag: "Academic",        tagColor: "text-orange-500 bg-orange-50" },
+    { id: "public",   label: "Public Resource",    icon: Package,       color: "text-emerald-600", bg: "bg-emerald-50",  border: "border-emerald-200", activeBg: "bg-emerald-600", tag: "Public Resource", tagColor: "text-emerald-600 bg-emerald-50" },
+    { id: "campaign", label: "Active Campaign",    icon: HeartHandshake,color: "text-teal-600",   bg: "bg-teal-50",     border: "border-teal-200",     activeBg: "bg-teal-600",     tag: "Campaign",        tagColor: "text-teal-600 bg-teal-50"  },
+  ];
+
+  const allItems = [
+    ...bloodDonations.map(i => ({ ...i, _searchType: "blood",    _href: `/blood-donation-details?id=${i.id}`,    _label: i.hospitalName,   _sub: `${i.bloodGroup} · ${i.location}`, _tag: "Blood Request",   _tagColor: "text-red-500 bg-red-50",         _searchText: `${i.bloodGroup} ${i.hospitalName} ${i.location} ${i.contactNumber || i.num || ""}` })),
+    ...needResources.map(i =>  ({ ...i, _searchType: "need",     _href: `/need-resource-details?id=${i.id}`,    _label: i.requestTitle,   _sub: i.category,                       _tag: "Need Resource",  _tagColor: "text-blue-500 bg-blue-50",        _searchText: `${i.requestTitle} ${i.description} ${i.category}` })),
+    ...marketplaceItems.map(i =>({ ...i, _searchType: "academic", _href: `/item-details?id=${i.id}`,             _label: i.title,          _sub: i.subject,                        _tag: "Academic",       _tagColor: "text-orange-500 bg-orange-50",    _searchText: `${i.title} ${i.subject} ${i.resourceCondition || i.condition || ""}` })),
+    ...publicResources.map(i => ({ ...i, _searchType: "public",   _href: `/resource-details?id=${i.id}&type=public`, _label: i.title,     _sub: i.category,                       _tag: "Public Resource",_tagColor: "text-emerald-600 bg-emerald-50",  _searchText: `${i.title} ${i.category} ${i.description || ""}` })),
+    ...campaigns.map(c =>       ({ ...c, _searchType: "campaign", _href: `/campaign-details?id=${c.id}`,         _label: c.title,          _sub: c.category,                       _tag: "Campaign",       _tagColor: "text-teal-600 bg-teal-50",        _searchText: `${c.title} ${c.description || ""} ${c.category || ""}` })),
+  ];
+
+  const searchResults = isSearching
+    ? allItems.filter(item => {
+        const matchesCategory = selectedCategory === null || item._searchType === selectedCategory;
+        const matchesQuery    = q === "" || item._searchText?.toLowerCase().includes(q);
+        return matchesCategory && matchesQuery;
+      })
+    : [];
+
   return (
     <div className="flex min-h-screen font-sans bg-gradient-to-b from-[#f2faf6] via-[#fbf8f3] to-[#fff3ec] relative overflow-hidden">
 
@@ -536,14 +566,24 @@ function DashboardContent() {
 
             <div className="flex items-center gap-4 w-full lg:w-auto">
               <div className="relative flex-1 lg:w-72 group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-uiu-emerald transition-colors" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-uiu-emerald transition-colors pointer-events-none" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search resources..."
-                  className="w-full pl-11 pr-4 py-2.5 rounded-full bg-white/60 backdrop-blur-md border border-white focus:border-uiu-emerald focus:ring-4 focus:ring-uiu-emerald/10 outline-none transition-all placeholder:text-slate-400 text-slate-800 font-bold shadow-sm text-sm"
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 150)}
+                  placeholder="Search resources, blood type, campaigns..."
+                  className="w-full pl-11 pr-9 py-2.5 rounded-full bg-white/60 backdrop-blur-md border border-white focus:border-uiu-emerald focus:ring-4 focus:ring-uiu-emerald/10 outline-none transition-all placeholder:text-slate-400 text-slate-800 font-bold shadow-sm text-sm"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center transition-colors"
+                  >
+                    <X className="w-3 h-3 text-slate-500" />
+                  </button>
+                )}
               </div>
               <motion.div
                 whileHover={{ scale: 1.05 }}
@@ -564,6 +604,36 @@ function DashboardContent() {
               </motion.div>
             </div>
           </header>
+
+          {/* ── CATEGORY FILTER CHIPS ───────────────────────────────────────── */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            {CATEGORIES.map(cat => {
+              const Icon = cat.icon;
+              const isActive = selectedCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(isActive ? null : cat.id)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black border transition-all ${
+                    isActive
+                      ? `${cat.activeBg} text-white border-transparent shadow-md scale-105`
+                      : `${cat.bg} ${cat.color} ${cat.border} hover:scale-105 hover:shadow-sm`
+                  }`}
+                >
+                  <Icon className="w-3 h-3" />
+                  {cat.label}
+                </button>
+              );
+            })}
+            {(selectedCategory || searchQuery) && (
+              <button
+                onClick={() => { setSelectedCategory(null); setSearchQuery(""); }}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-black bg-slate-100 text-slate-400 border border-slate-200 hover:bg-slate-200 transition-all"
+              >
+                <X className="w-3 h-3" /> Clear
+              </button>
+            )}
+          </div>
 
           {/* STATS SECTION
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
@@ -589,6 +659,112 @@ function DashboardContent() {
               </motion.div>
             ))}
           </div> */}
+
+          {/* ── SEARCH RESULTS ─────────────────────────────────────────────── */}
+          <AnimatePresence mode="wait">
+            {isSearching && (
+              <motion.div
+                key="search-results"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18 }}
+                className="mb-6"
+              >
+                {/* Results header — shows active category chip or generic search label */}
+                <div className="flex items-center gap-3 mb-4">
+                  {(() => {
+                    const activeCat = CATEGORIES.find(c => c.id === selectedCategory);
+                    const Icon = activeCat?.icon || Search;
+                    return (
+                      <div className={`p-2 rounded-xl border ${activeCat ? `${activeCat.bg} ${activeCat.border}` : 'bg-uiu-emerald/10 border-emerald-100'}`}>
+                        <Icon className={`w-4 h-4 ${activeCat ? activeCat.color : 'text-uiu-emerald'}`} />
+                      </div>
+                    );
+                  })()}
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                      {selectedCategory
+                        ? CATEGORIES.find(c => c.id === selectedCategory)?.label
+                        : "Search Results"}
+                    </h3>
+                    <p className="text-slate-400 font-medium text-xs">
+                      {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}
+                      {searchQuery && <> for &quot;<span className="text-uiu-emerald font-black">{searchQuery}</span>&quot;</>}
+                      {!searchQuery && selectedCategory && <> in this category</>}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { setSearchQuery(""); setSelectedCategory(null); }}
+                    className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 text-xs font-black transition-colors"
+                  >
+                    <X className="w-3 h-3" /> Clear All
+                  </button>
+                </div>
+
+                {searchResults.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {searchResults.map((item, i) => (
+                      <motion.div
+                        key={`sr-${item._searchType}-${item.id}-${i}`}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                      >
+                        <Link
+                          href={item._href}
+                          className="flex items-start gap-4 p-4 bg-white/70 backdrop-blur-xl rounded-2xl border border-white/80 shadow-sm hover:shadow-lg hover:bg-white/90 hover:-translate-y-1 transition-all group"
+                        >
+                          {/* Type icon */}
+                          <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
+                            item._searchType === "blood"    ? "bg-red-100"    :
+                            item._searchType === "need"     ? "bg-blue-100"   :
+                            item._searchType === "academic" ? "bg-orange-100" :
+                            item._searchType === "campaign" ? "bg-teal-100"   :
+                                                              "bg-emerald-100"
+                          }`}>
+                            {item._searchType === "blood"    && <Droplets className="w-5 h-5 text-red-500" />}
+                            {item._searchType === "need"     && <PackageSearch className="w-5 h-5 text-blue-500" />}
+                            {item._searchType === "academic" && <GraduationCap className="w-5 h-5 text-orange-500" />}
+                            {item._searchType === "public"   && <Package className="w-5 h-5 text-emerald-600" />}
+                            {item._searchType === "campaign" && <HeartHandshake className="w-5 h-5 text-teal-600" />}
+                          </div>
+
+                          {/* Text */}
+                          <div className="flex-1 min-w-0">
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest mb-1 ${item._tagColor}`}>
+                              {item._tag}
+                            </span>
+                            <h4 className="text-sm font-black text-slate-900 line-clamp-1 group-hover:text-uiu-emerald transition-colors">
+                              {item._label || "Untitled"}
+                            </h4>
+                            {item._sub && (
+                              <p className="text-[11px] font-semibold text-slate-400 line-clamp-1 mt-0.5">
+                                {item._sub}
+                              </p>
+                            )}
+                          </div>
+
+                          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-uiu-emerald shrink-0 mt-1 transition-colors" />
+                        </Link>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-20 text-center bg-white/30 rounded-[2rem] border border-dashed border-slate-200">
+                    <Search className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+                    <p className="text-slate-400 font-black text-sm">No results found</p>
+                    <p className="text-slate-300 font-semibold text-xs mt-1">
+                      Try a different keyword — blood type, resource title, or campaign name.
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── NORMAL SECTIONS (hidden while searching) ───────────────────── */}
+          {!isSearching && (<>
 
           {/* ── BLOOD DONATION SECTION ──────────────────────────────────────── */}
           <div className="mb-6">
@@ -905,6 +1081,10 @@ function DashboardContent() {
               )}
             </div>
           </div>
+
+          {/* end !isSearching */}
+          </>)}
+
         </div>
       </main>
 

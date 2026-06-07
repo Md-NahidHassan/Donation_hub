@@ -62,7 +62,7 @@ function NeedResourceDetailsContent() {
 
         const fetchItem = async () => {
             try {
-                const res = await fetch(`${API}/${itemId}`);
+                const res = await fetch(`${API}/${itemId}`, { cache: "no-store" });
                 if (res.ok) {
                     const data = await res.json();
                     setItem(data);
@@ -98,7 +98,7 @@ function NeedResourceDetailsContent() {
 
         async function fetchComments() {
             try {
-                const res = await fetch(`${COMMENTS_API}/NEED_RESOURCE/${itemId}`);
+                const res = await fetch(`${COMMENTS_API}/NEED_RESOURCE/${itemId}`, { cache: "no-store" });
                 if (res.ok) {
                     const data = await res.json();
                     setComments(data);
@@ -109,7 +109,7 @@ function NeedResourceDetailsContent() {
         // ── Per-user reaction status from backend ──────────────────────────
         async function fetchUserReaction(email) {
             try {
-                const res = await fetch(`http://localhost:8080/api/resources/react/status/NEED_RESOURCE/${itemId}/${encodeURIComponent(email)}`);
+                const res = await fetch(`http://localhost:8080/api/resources/react/status/NEED_RESOURCE/${itemId}/${encodeURIComponent(email)}`, { cache: "no-store" });
                 if (res.ok) {
                     const text = await res.text();
                     if (text) {
@@ -313,7 +313,7 @@ function NeedResourceDetailsContent() {
                                                     <span className="font-black text-slate-800 text-xs">{comm.userName}</span>
                                                     <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest flex items-center gap-1">
                                                         <Clock className="w-2.5 h-2.5" />
-                                                        {new Date(comm.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        {formatDateTime(comm.createdAt)}
                                                     </span>
                                                 </div>
                                                 <p className="text-slate-600 font-medium text-xs bg-white/40 p-3.5 rounded-xl rounded-tl-none border border-white/60 group-hover:bg-white transition-colors leading-relaxed">{comm.content}</p>

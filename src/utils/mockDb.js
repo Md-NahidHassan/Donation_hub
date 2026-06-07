@@ -36,9 +36,50 @@ export const mockDb = {
 
   saveCampaignExtras: (title, extras) => {
     if (typeof window === "undefined") return;
+
+    // Strip base64 image data — these are large blobs that quickly overflow
+    // the 5 MB localStorage quota. Backend URLs are kept; data: URIs are dropped.
+    const stripBase64 = (val) => {
+      if (typeof val === 'string' && val.startsWith('data:')) return null;
+      return val;
+    };
+
+    const sanitized = {
+      ...extras,
+      image: stripBase64(extras.image),
+      paymentQRs: Array.isArray(extras.paymentQRs)
+        ? extras.paymentQRs.map(qr => ({ ...qr, image: stripBase64(qr.image), preview: stripBase64(qr.preview) }))
+        : extras.paymentQRs,
+    };
+
     const existing = JSON.parse(localStorage.getItem(KEYS.EXTRAS) || '{}');
-    existing[title] = extras;
-    localStorage.setItem(KEYS.EXTRAS, JSON.stringify(existing));
+    existing[title] = sanitized;
+
+    // Try to save; if still over quota, evict the oldest entry and retry once.
+    try {
+      localStorage.setItem(KEYS.EXTRAS, JSON.stringify(existing));
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.code === 22) {
+        const keys = Object.keys(existing);
+        if (keys.length > 1) {
+          // Remove the first (oldest) key and retry
+          delete existing[keys[0]];
+          try {
+            localStorage.setItem(KEYS.EXTRAS, JSON.stringify(existing));
+          } catch (_) {
+            // Still failing — clear the entire extras bucket and store only this entry
+            try {
+              localStorage.setItem(KEYS.EXTRAS, JSON.stringify({ [title]: sanitized }));
+            } catch (__) {
+              console.warn('localStorage quota exceeded even after cleanup. Skipping extras save.');
+            }
+          }
+        } else {
+          // Only one entry and it's still too big — skip silently
+          console.warn('localStorage quota exceeded. Skipping extras save for:', title);
+        }
+      }
+    }
   },
   getCampaignExtras: (title) => {
     if (typeof window === "undefined") return null;

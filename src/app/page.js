@@ -15,7 +15,11 @@ import {
   ShieldCheck,
   Zap,
   Trees as Tree,
-  Rocket
+  Rocket,
+  Droplets,
+  ArrowUpRight,
+  MapPin,
+  Phone
 } from "lucide-react";
 import { motion, useScroll, useTransform, useMotionValue, useSpring, AnimatePresence } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
@@ -35,6 +39,32 @@ export default function Home() {
   const [isMounted, setIsMounted] = useState(false);
   const [activeCampaigns, setActiveCampaigns] = useState([]);
   const [recentItems, setRecentItems] = useState([]);
+  const [typedText, setTypedText] = useState("");
+  const [bloodDonations, setBloodDonations] = useState([]);
+
+  useEffect(() => {
+    const fullText = "Sustainable Sharing.";
+    let i = 0;
+    let isDeleting = false;
+    let timeout;
+
+    const type = () => {
+      if (!isDeleting && i <= fullText.length) {
+        setTypedText(fullText.substring(0, i));
+        i++;
+        timeout = setTimeout(type, 120);
+      } else if (isDeleting && i >= 0) {
+        setTypedText(fullText.substring(0, i));
+        i--;
+        timeout = setTimeout(type, 60);
+      } else {
+        isDeleting = !isDeleting;
+        timeout = setTimeout(type, 1500);
+      }
+    };
+    timeout = setTimeout(type, 500);
+    return () => clearTimeout(timeout);
+  }, []);
 
   useEffect(() => {
     setIsMounted(true);
@@ -73,14 +103,17 @@ export default function Home() {
             };
           });
           const active = mapped.filter(c => !mockDb.isCampaignExpired(c));
-          setActiveCampaigns(active.slice(0, 6));
+          // Provide newest first
+          const recentActive = active.reverse().slice(0, 6);
+          setActiveCampaigns(recentActive);
         } else {
           throw new Error("API fail");
         }
       } catch (err) {
         // Fallback to mock campaigns
         const allCampaigns = mockDb.getCampaigns().filter(c => !mockDb.isCampaignExpired(c));
-        setActiveCampaigns(allCampaigns.slice(0, 6).map(c => ({
+        const recentFallback = allCampaigns.reverse().slice(0, 6);
+        setActiveCampaigns(recentFallback.map(c => ({
           ...c,
           icon: iconMap[c.icon] || <Zap className="w-10 h-10 text-amber-500" />
         })));
@@ -89,6 +122,17 @@ export default function Home() {
       // 2. Load Recent Approved Items from MockDb
       const approvedItems = mockDb.getItems().filter(it => it.status === "Approved");
       setRecentItems(approvedItems.slice(-3).reverse());
+
+      // 3. Fetch Blood Donations (for new users/non-users to view)
+      try {
+        const resBlood = await fetch("http://localhost:8080/api/blood-donation", { cache: "no-store" });
+        if (resBlood.ok) {
+          const bloodData = await resBlood.json();
+          setBloodDonations(bloodData.slice(0, 4));
+        }
+      } catch (err) {
+        console.warn("Home page blood donation fetch failed:", err);
+      }
     };
 
     loadData();
@@ -123,19 +167,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col font-sans overflow-hidden bg-gradient-to-b from-[#f2faf6] via-[#fbf8f3] text-slate-900 to-[#fff3ec]" ref={containerRef}>
 
-      {/* BACKGROUND ELEMENTS */}
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <motion.div
-          style={{ x: smoothX, y: smoothY }}
-          className="absolute top-[-15vw] left-[-15vw] w-[30vw] h-[30vw] rounded-full bg-uiu-orange/15 blur-[120px] pointer-events-none z-10"
-        />
-        <motion.div
-          animate={{ x: ['0vw', '30vw', '-20vw', '0vw'], y: ['0vh', '-20vh', '30vh', '0vh'], scale: [1, 1.3, 0.9, 1] }}
-          transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-          className="absolute top-[10%] left-[20%] w-[45vw] h-[45vw] rounded-[100%] bg-uiu-emerald/15 blur-[130px]"
-        />
-        <div className="absolute inset-0 backdrop-blur-[60px] z-[-1]" />
-      </div>
+      {/* BACKGROUND ELEMENTS REMOVED AS REQUESTED */}
 
       {/* NAVBAR */}
       <motion.header
@@ -143,17 +175,30 @@ export default function Home() {
         animate={{ y: 0 }}
         className="sticky top-0 z-50 w-full border-b border-slate-200/50 bg-[#fbf8f3]/80 backdrop-blur-xl shadow-sm"
       >
-        <div className="max-w-7xl mx-auto px-6 h-[72px] flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group cursor-pointer">
-            <span className="text-2xl font-black bg-gradient-to-r from-uiu-orange via-rose-500 to-uiu-emerald bg-clip-text text-transparent group-hover:opacity-80 transition-opacity">
-              EcoKnot
-            </span>
+        <div className="w-full px-4 md:px-6 h-[72px] flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 cursor-pointer" style={{ perspective: 1000 }}>
+            <motion.div
+              animate={{ 
+                rotateX: [8, -8, 8], 
+                rotateY: [-10, 10, -10]
+              }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="px-4 py-1.5 rounded-xl bg-white/40 backdrop-blur-md border border-white/60 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] flex items-center justify-center transform-gpu"
+              style={{ transformStyle: "preserve-3d" }}
+            >
+              <span 
+                className="text-2xl font-black bg-gradient-to-r from-slate-900 to-uiu-emerald bg-clip-text text-transparent"
+                style={{ transform: "translateZ(15px)" }}
+              >
+                EcoKnot
+              </span>
+            </motion.div>
           </Link>
 
           <nav className="hidden md:flex items-center gap-10 text-sm font-semibold text-slate-600">
 
 
-            <Link href="#about" className="hover:text-slate-900 transition-colors">About</Link>
+            <Link href="#about" className="hover:text-slate-900 transition-colors"></Link>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -169,11 +214,11 @@ export default function Home() {
         {/* HERO SECTION */}
         <motion.section
           style={{ y: heroY, opacity: heroOpacity }}
-          className="relative min-h-[95vh] flex flex-col items-center justify-center text-center px-6 pt-24 overflow-hidden"
+          className="relative min-h-[60vh] flex flex-col items-center justify-center text-center px-6 pt-10 overflow-hidden"
         >
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[150%] h-[150%] bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.08)_0%,transparent_50%)] pointer-events-none" />
 
-          <motion.div variants={fadeUp} initial="hidden" animate="show" className="flex items-center gap-3 px-6 py-2 rounded-full bg-white/50 backdrop-blur-md border border-slate-200/50 text-slate-600 text-sm font-bold mb-10 shadow-sm">
+          <motion.div variants={fadeUp} initial="hidden" animate="show" className="flex items-center gap-3 px-6 py-1.5 rounded-full bg-white/50 backdrop-blur-md border border-slate-200/50 text-slate-600 text-sm font-bold mb-4 shadow-sm">
             <span className="relative flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-uiu-emerald opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-uiu-emerald"></span>
@@ -183,58 +228,81 @@ export default function Home() {
 
           <motion.h1
             variants={fadeUp} initial="hidden" animate="show"
-            className="text-6xl md:text-8xl font-black tracking-tighter text-slate-900 max-w-5xl mb-8 leading-[1.1]"
+            className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter text-slate-900 max-w-4xl mb-4 leading-[1.1] min-h-[110px] sm:min-h-[70px]"
           >
-            Empowering Students through <span className="text-transparent bg-clip-text bg-gradient-to-r from-uiu-emerald via-teal-400 to-emerald-600">Sustainable</span> Sharing.
+            Empowering Students through{" "}
+            <motion.span
+              animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-uiu-emerald via-teal-400 to-emerald-600 bg-[length:200%_auto]"
+            >
+              {typedText}
+            </motion.span>
+            <motion.span
+              animate={{ opacity: [1, 0, 1] }}
+              transition={{ duration: 0.8, repeat: Infinity }}
+              className="inline-block w-[3px] h-[0.9em] bg-emerald-500 ml-1 translate-y-2"
+            />
           </motion.h1>
 
           <motion.p
             variants={fadeUp} initial="hidden" animate="show"
-            className="text-xl md:text-2xl text-slate-600 max-w-3xl mb-14 font-medium"
+            className="text-base md:text-lg text-slate-600 max-w-2xl mb-8 font-medium"
           >
             Join the movement to exchange resources, reduce waste, and support our community through impactful donation drives.
           </motion.p>
 
           <motion.div
             variants={fadeUp} initial="hidden" animate="show"
-            className="flex flex-col sm:flex-row items-center gap-6"
+            className="flex flex-col sm:flex-row items-center gap-3"
           >
-            <Link href="/login" className="h-16 px-10 rounded-full bg-slate-900 text-white font-bold text-lg flex items-center justify-center gap-3 hover:scale-[1.02] transition-all shadow-xl">
-              Get Started <Rocket className="w-5 h-5" />
+            <Link href="/login" className="h-12 px-6 rounded-full bg-slate-900 text-white font-bold text-sm flex items-center justify-center gap-2 hover:scale-[1.02] transition-all shadow-xl">
+              Get Started <Rocket className="w-4 h-4" />
             </Link>
-            <Link href="/login" className="h-16 px-10 rounded-full bg-white border-2 border-white backdrop-blur-md text-slate-900 font-bold text-lg flex items-center justify-center gap-3 shadow-sm">
-              Start Donating <Heart className="w-5 h-5 text-rose-500" />
+            <Link href="/login" className="h-12 px-6 rounded-full bg-white border-2 border-slate-100 backdrop-blur-md text-slate-900 font-bold text-sm flex items-center justify-center gap-2 shadow-sm hover:border-slate-300 transition-all">
+              Start Donating <Heart className="w-4 h-4 text-rose-500" />
             </Link>
           </motion.div>
         </motion.section>
 
         {/* RUNNING CAMPAIGNS SECTION */}
-        <section className="py-24 relative overflow-hidden bg-white/30 backdrop-blur-sm">
+        <section className="py-16 relative overflow-hidden bg-white/30 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto px-6">
-            <div className="text-center mb-16">
+            <div className="text-center mb-10">
               <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-6">Our Active Impact Campaigns</h2>
               <div className="w-24 h-1.5 bg-uiu-orange rounded-full mx-auto" />
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {activeCampaigns.map((campaign) => (
-                <Link key={campaign.id} href={`/campaign-details?id=${campaign.id}&ref=home`}>
+                <Link key={campaign.id} href={`/campaign-details?id=${campaign.id}&ref=home`} className="block h-full">
                   <motion.div
-                    whileHover={{ y: -10 }}
-                    className="group relative h-full bg-white/60 backdrop-blur-xl border border-white rounded-[2.5rem] p-8 shadow-xl overflow-hidden cursor-pointer"
+                    whileHover={{ y: -6 }}
+                    className="group relative h-full bg-white/60 backdrop-blur-xl border border-white rounded-[2rem] shadow-xl overflow-hidden transition-all flex flex-col cursor-pointer"
                   >
-                    <div className="relative z-10">
-                      <div className="flex justify-between items-start mb-8">
-                        <div className="p-4 bg-white rounded-3xl shadow-sm">{campaign.icon}</div>
-                        <span className="px-4 py-1.5 bg-emerald-500/10 text-emerald-600 text-xs font-black rounded-full border border-emerald-500/20">Live Now</span>
-                      </div>
-                      <h3 className="text-2xl font-black text-slate-900 mb-2">{campaign.title}</h3>
-                      <p className="text-slate-500 font-bold text-sm mb-6 uppercase">Goal: {campaign.goal} {campaign.items ? "" : "Units"}</p>
-                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden mb-8">
-                        <div className="h-full bg-uiu-emerald rounded-full" style={{ width: `${campaign.progress}%` }} />
-                      </div>
-                      <div className="flex items-center gap-2 text-uiu-orange font-black">
-                        Join Movement <ArrowRight className="w-4 h-4 group-hover:translate-x- motion-safe:1" />
+                    {campaign.image ? (
+                        <div className="relative h-48 w-full bg-slate-100 overflow-hidden shrink-0">
+                            <img src={campaign.image} alt={campaign.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <div className="absolute top-4 right-4 px-3 py-1 bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-black rounded-full shadow-sm uppercase tracking-widest border border-emerald-400">Live Now</div>
+                        </div>
+                    ) : (
+                        <div className="flex justify-between items-start pt-6 px-6 relative z-10">
+                          <div className="p-3 bg-white border border-slate-100 rounded-2xl shadow-sm">{campaign.icon}</div>
+                          <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 text-[10px] font-black rounded-full border border-emerald-500/20 uppercase tracking-widest">Live Now</span>
+                        </div>
+                    )}
+                    
+                    <div className="p-6 pt-5 flex-1 flex flex-col relative z-10 bg-white/40">
+                      <h3 className="text-xl font-black text-slate-900 mb-1.5 line-clamp-2 leading-tight">{campaign.title}</h3>
+                      <p className="text-slate-500 font-bold text-[10px] mb-5 uppercase tracking-widest">Goal: {campaign.goal} {campaign.items ? "" : "Units"}</p>
+                      
+                      <div className="mt-auto">
+                          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden mb-4 border border-slate-200/50">
+                            <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${campaign.progress}%` }} />
+                          </div>
+                          <div className="flex items-center gap-2 text-uiu-orange font-black text-sm">
+                            Join Movement <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                          </div>
                       </div>
                     </div>
                   </motion.div>
@@ -244,10 +312,71 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ABOUT US SECTION */}
-        <section id="about" className="py-32 relative bg-white">
+        {/* BLOOD DONATION SECTION */}
+        <section className="py-16 relative bg-[#fdf5f5] border-t border-rose-100">
           <div className="max-w-7xl mx-auto px-6">
-            <div className="flex flex-col lg:flex-row items-center gap-20">
+            <div className="text-center mb-10 flex flex-col items-center">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <div className="p-2.5 bg-red-100 rounded-xl border border-red-200 shadow-sm">
+                  <Droplets className="w-6 h-6 text-red-500" />
+                </div>
+                <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">Blood Donation</h2>
+              </div>
+              <div className="w-24 h-1.5 bg-red-500 rounded-full mx-auto mb-6" />
+              <p className="text-slate-500 font-medium text-base md:text-lg max-w-2xl mx-auto">Recent urgent blood requests from the community. Anyone can donate or request blood to save a life today.</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {bloodDonations.length > 0 ? bloodDonations.map((item, i) => (
+                <motion.div
+                  key={`home-blood-${item.id}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="group bg-white rounded-[2rem] border border-slate-100 shadow-md hover:shadow-2xl hover:shadow-red-500/10 transition-all flex flex-col overflow-hidden h-full"
+                >
+                  <div className={`h-24 shrink-0 relative flex items-center justify-center overflow-hidden ${item.urgent ? "bg-gradient-to-br from-red-500 to-rose-600" : "bg-gradient-to-br from-rose-100 to-red-50"}`}>
+                    <span className={`text-4xl font-black tracking-tighter select-none ${item.urgent ? "text-white/80" : "text-red-400/30"}`}>{item.bloodGroup}</span>
+                    <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-white text-[10px] font-black shadow-sm ${item.bloodGroup === "O+" || item.bloodGroup === "O-" ? "bg-orange-500" :
+                        item.bloodGroup?.startsWith("A") ? "bg-red-500" :
+                          item.bloodGroup?.startsWith("B") ? "bg-blue-500" : "bg-purple-500"
+                      }`}>{item.bloodGroup}</div>
+                    {item.urgent && (
+                      <div className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/25 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest shadow-sm">
+                        <Flame className="w-3 h-3" /> Urgent
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-5 flex-1 flex flex-col bg-white">
+                    <div className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">Blood Request</div>
+                    <h4 className="text-base font-black text-slate-900 mb-3 line-clamp-1">{item.hospitalName}</h4>
+                    <div className="space-y-2 text-xs font-bold text-slate-500 mb-5 bg-slate-50 p-3 rounded-xl border border-slate-100/50">
+                      <div className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-rose-400" />{item.location}</div>
+                      <div className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-green-500" />{item.num || item.contactNumber}</div>
+                    </div>
+                    <Link href={`/blood-donation-details?id=${item.id}&ref=home`}
+                      className="mt-auto w-full py-3 rounded-xl font-black text-red-600 text-xs bg-red-50 hover:bg-red-500 hover:text-white border border-red-100 transition-all flex items-center justify-center gap-1.5">
+                      View Request <ArrowUpRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </motion.div>
+              )) : (
+                <div className="col-span-full py-24 text-center text-slate-400 font-medium italic bg-white/80 rounded-[3rem] border border-dashed border-red-200">
+                  <Droplets className="w-16 h-16 text-red-200 mx-auto mb-4" />
+                  <p className="text-lg">No urgent blood requests right now.</p>
+                  <p className="text-sm mt-1 mb-4">But you can still make a request if you need blood.</p>
+                  <Link href="/blood-donation" className="inline-block mt-2 text-red-500 font-black text-sm uppercase tracking-widest hover:underline">Create a Request →</Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* ABOUT US SECTION */}
+        <section id="about" className="py-16 relative bg-white">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex flex-col lg:flex-row items-center gap-12">
               <div className="lg:w-1/2 relative">
                 <div className="w-full aspect-square rounded-[3rem] bg-gradient-to-br from-emerald-50 to-orange-50 flex items-center justify-center relative overflow-hidden group border border-slate-100">
                   <Tree className="w-48 h-48 text-uiu-emerald drop-shadow-[0_0_40px_rgba(16,185,129,0.3)]" />
@@ -255,13 +384,13 @@ export default function Home() {
               </div>
               <div className="lg:w-1/2">
                 <span className="text-uiu-orange font-black text-sm uppercase tracking-widest mb-4 block">Our Story</span>
-                <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-8 leading-tight">
+                <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-6 leading-tight">
                   Empowering the <span className="text-uiu-emerald underline decoration-uiu-orange/30 decoration-8 underline-offset-8">UIU Community</span>
                 </h2>
-                <p className="text-xl text-slate-600 font-medium leading-relaxed mb-12">
+                <p className="text-xl text-slate-600 font-medium leading-relaxed mb-8">
                   EcoKnot is a dedicated resource-sharing and sustainability platform built exclusively for United International University. Our mission is to reduce waste and foster a culture of giving by connecting students through donation drives and eco-friendly item exchanges.
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="p-6 bg-[#fbf8f3] rounded-3xl border border-slate-100">
                     <Zap className="w-8 h-8 text-uiu-orange mb-4" />
                     <h4 className="font-black text-slate-900 mb-2">Eco-Points</h4>
@@ -278,50 +407,14 @@ export default function Home() {
           </div>
         </section>
 
-        {/* MARKETPLACE PREVIEW */}
-        <section className="py-32">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex justify-between items-end mb-16">
-              <div>
-                <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-4">Recent Listings</h2>
-                <p className="text-xl text-slate-600 font-medium">Discover what your peers are sharing right now.</p>
-              </div>
-              <Link href="/login" className="hidden sm:flex items-center gap-2 text-uiu-orange font-bold text-lg group">
-                View all items <ChevronRight className="w-5 h-5 group-hover:translate-x-1" />
-              </Link>
-            </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {recentItems.length > 0 ? (
-                recentItems.map((item) => (
-                  <motion.div key={item.id} whileHover={{ y: -8 }} className="group rounded-[2rem] border border-white bg-white/70 backdrop-blur-lg overflow-hidden shadow-sm hover:shadow-xl transition-all">
-                    <div className="h-64 relative bg-slate-50 flex items-center justify-center">
-                      <Package className="w-20 h-20 text-slate-200" />
-                      <div className="absolute top-5 left-5 px-4 py-2 text-xs font-black rounded-full bg-white/80 text-slate-700 shadow-sm uppercase">{item.condition}</div>
-                    </div>
-                    <div className="p-8 bg-white/80 border-t border-white">
-                      <h3 className="text-2xl font-black text-slate-900 mb-3">{item.title}</h3>
-                      <p className="text-base text-slate-500 mb-8 font-medium">By {item.postedBy} • {item.subject}</p>
-                      <Link href="/login" className="w-full py-4 rounded-2xl bg-slate-100 text-slate-900 font-bold hover:bg-slate-900 hover:text-white transition-all flex items-center justify-center gap-2">
-                        I'm Interested <ArrowRight className="w-4 h-4" />
-                      </Link>
-                    </div>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="col-span-full py-20 text-center text-slate-400 font-medium italic border-2 border-dashed border-slate-200 rounded-[2rem]">
-                  No public listings approved yet. Check back soon!
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
+
       </main>
 
       {/* FOOTER */}
-      <footer className="border-t border-slate-200/50 bg-[#fbf8f3] pt-24 pb-12">
+      <footer className="border-t border-slate-200/50 bg-[#fbf8f3] pt-16 pb-8">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between gap-12 mb-16">
+          <div className="flex flex-col md:flex-row justify-between gap-10 mb-10">
             <div className="max-w-sm">
               <div className="flex items-center gap-3 mb-6">
                 <Leaf className="w-10 h-10 text-uiu-emerald" />

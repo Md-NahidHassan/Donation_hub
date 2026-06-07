@@ -68,10 +68,10 @@ function ResourceDetailsContent() {
       try {
         let data = null;
         if (type === "public") {
-          const res = await fetch(`http://localhost:8080/api/public-resources/${id}`);
+          const res = await fetch(`http://localhost:8080/api/public-resources/${id}`, { cache: "no-store" });
           if (res.ok) data = await res.json();
         } else {
-          const res = await fetch(`http://localhost:8080/api/resources/${id}`);
+          const res = await fetch(`http://localhost:8080/api/resources/${id}`, { cache: "no-store" });
           if (res.ok) data = await res.json();
         }
 
@@ -111,7 +111,7 @@ function ResourceDetailsContent() {
     async function fetchComments() {
       const type = searchParams.get("type");
       try {
-        const res = await fetch(`http://localhost:8080/api/comments/${type}/${id}`);
+        const res = await fetch(`http://localhost:8080/api/comments/${type}/${id}`, { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
           setComments(data);
@@ -124,7 +124,7 @@ function ResourceDetailsContent() {
     async function fetchUserReaction(email) {
       const type = searchParams.get("type");
       try {
-        const res = await fetch(`http://localhost:8080/api/resources/react/status/${type}/${id}/${email}`);
+        const res = await fetch(`http://localhost:8080/api/resources/react/status/${type}/${id}/${email}`, { cache: "no-store" });
         if (res.ok) {
           const text = await res.text();
           if (text) {
@@ -166,61 +166,83 @@ function ResourceDetailsContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          resourceId: id,
+          resourceId: Number(id),
           resourceType: type,
-          userName: user.fullName || "User",
+          userName: user.fullName || user.username || "User",
           userEmail: user.email,
-          content: newComment
+          content: newComment.trim()
         })
       });
 
       if (res.ok) {
         const addedComment = await res.json();
-        setComments([addedComment, ...comments]);
+        setComments(prev => [addedComment, ...prev]);
         setNewComment("");
+      } else {
+        const errText = await res.text();
+        console.error("Comment failed:", errText);
+        alert("Failed to post comment. Please try again.");
       }
     } catch (err) {
       console.error("Error posting comment:", err);
+      alert("Cannot connect to server. Is the backend running?");
     }
   };
 
 
-  const handleDownload = () => {
-    const url = item?.fileUrl || item?.downloadUrl;
-    if (!url) {
-      alert("No download link available for this resource.");
-      return;
-    }
-
+  const triggerDownload = (url, baseName, ext) => {
+    if (!url) return;
     try {
-      const link = document.createElement("a");
-      link.href = url;
-
-      let fileName = item.title ? item.title.replace(/\s+/g, '_') : "resource";
       if (url.startsWith("data:")) {
-        const mimeMatch = url.match(/data:([^;]+);/);
-        if (mimeMatch) {
-          const mime = mimeMatch[1];
-          const ext = mime.split('/')[1] || "file";
-          fileName += `.${ext}`;
+        // Detect extension from mime type if not provided
+        if (!ext) {
+          const mimeMatch = url.match(/data:([^;]+);/);
+          if (mimeMatch) ext = mimeMatch[1].split('/')[1] || "file";
         }
-      } else if (url.includes("/")) {
+        const fileName = `${baseName}.${ext || "file"}`;
+        fetch(url)
+          .then(r => r.blob())
+          .then(blob => {
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = blobUrl;
+            link.setAttribute("download", fileName);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(blobUrl);
+          })
+          .catch(() => window.open(url, "_blank"));
+      } else {
+        const link = document.createElement("a");
+        link.href = url;
         const parts = url.split("/");
         const last = parts[parts.length - 1];
-        if (last.includes(".")) fileName = last;
+        link.setAttribute("download", last.includes(".") ? last : `${baseName}.${ext || "file"}`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       }
-
-      link.setAttribute("download", fileName);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      setDownloaded(true);
-      setTimeout(() => setDownloaded(false), 3000);
     } catch (err) {
       console.error("Download failed:", err);
       window.open(url, "_blank");
     }
+  };
+
+  const handleDownloadFile = () => {
+    const url = item?.fileUrl || item?.downloadUrl;
+    if (!url) { alert("No file available for this resource."); return; }
+    const baseName = (item.resourceName || item.title || "resource").replace(/\s+/g, '_');
+    triggerDownload(url, baseName, null);
+    setDownloaded(true);
+    setTimeout(() => setDownloaded(false), 3000);
+  };
+
+  const handleDownloadImage = () => {
+    const url = item?.image;
+    if (!url) { alert("No image available for this resource."); return; }
+    const baseName = (item.resourceName || item.title || "resource").replace(/\s+/g, '_');
+    triggerDownload(url, baseName, "jpg");
   };
 
   const handleReact = async (reactionType) => {
@@ -377,33 +399,55 @@ function ResourceDetailsContent() {
                 </div>
 
                 {/* Actions Container */}
-                <div className="space-y-4">
-                  {/* Action Buttons */}
-                  {(item.fileUrl || item.downloadUrl) ? (
-                    <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-100/50 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600"><Download className="w-5 h-5" /></div>
+                <div className="space-y-3">
+                  {/* File Download */}
+                  {(item.fileUrl || item.downloadUrl) && (
+                    <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100/60 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600"><Download className="w-4 h-4" /></div>
                         <div>
-                          <p className="text-[8px] font-black text-emerald-600/60 uppercase tracking-widest">Digital Resource</p>
-                          <p className="text-xs font-black text-emerald-700">Digital Copy Available</p>
+                          <p className="text-[8px] font-black text-emerald-600/60 uppercase tracking-widest">Resource File</p>
+                          <p className="text-xs font-black text-emerald-700">Document / PDF Available</p>
                         </div>
                       </div>
                       <button
-                        onClick={handleDownload}
-                        className="px-4 py-2 bg-emerald-500 text-white font-black rounded-lg text-xs shadow-sm hover:bg-emerald-600 transition-all flex items-center gap-2"
+                        onClick={handleDownloadFile}
+                        className="px-3 py-2 bg-emerald-500 text-white font-black rounded-lg text-xs shadow-sm hover:bg-emerald-600 transition-all flex items-center gap-1.5"
                       >
-                        {downloaded ? <><CheckCircle2 className="w-3 h-3" /> Get it Again</> : <><Download className="w-3 h-3" /> Download Now</>}
+                        {downloaded ? <><CheckCircle2 className="w-3 h-3" /> Downloaded!</> : <><Download className="w-3 h-3" /> Download File</>}
                       </button>
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-100/50">
+                  )}
+
+                  {/* Image Download */}
+                  {item.image && (
+                    <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100/60 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 bg-blue-100 rounded-lg text-blue-600"><Download className="w-4 h-4" /></div>
+                        <div>
+                          <p className="text-[8px] font-black text-blue-600/60 uppercase tracking-widest">Image</p>
+                          <p className="text-xs font-black text-blue-700">Photo / Image Available</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleDownloadImage}
+                        className="px-3 py-2 bg-blue-500 text-white font-black rounded-lg text-xs shadow-sm hover:bg-blue-600 transition-all flex items-center gap-1.5"
+                      >
+                        <Download className="w-3 h-3" /> Download Image
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Fallback info if no file or image */}
+                  {!item.fileUrl && !item.downloadUrl && !item.image && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100/50">
                         <p className="text-[8px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Exchange Type</p>
                         <p className="text-sm font-black text-emerald-700">{item.exchangeType || "Standard"}</p>
                       </div>
-                      <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100/50">
+                      <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
                         <p className="text-[8px] font-black text-blue-600/60 uppercase tracking-widest mb-1">Condition</p>
-                        <p className="text-sm font-black text-blue-700">{item.conditionType || "Good"}</p>
+                        <p className="text-sm font-black text-blue-700">{item.conditionType || item.conditionInfo || "Good"}</p>
                       </div>
                     </div>
                   )}
@@ -418,14 +462,14 @@ function ResourceDetailsContent() {
                 className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-[1.2rem] p-4 shadow-sm space-y-4"
               >
                 <h3 className="text-base font-black text-slate-800 flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-emerald-500" /> Inquiries ({comments.length})
+                  <MessageSquare className="w-4 h-4 text-emerald-500" /> Comments ({comments.length})
                 </h3>
 
                 <form onSubmit={handlePostComment} className="relative">
                   <textarea
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Ask about availability or details..."
+                    placeholder="Write a comment..."
                     className="w-full p-3 pr-10 bg-white/40 border border-white/60 rounded-xl font-bold text-slate-700 text-xs outline-none focus:ring-2 focus:ring-emerald-400/10 focus:border-emerald-400 transition-all resize-none min-h-[60px]"
                   />
                   <button type="submit" className="absolute bottom-2 right-2 p-2 bg-emerald-500 text-white rounded-lg shadow-md hover:scale-105 active:scale-95 transition-all">
@@ -444,7 +488,7 @@ function ResourceDetailsContent() {
                           <span className="font-black text-slate-800 text-xs">{comm.userName}</span>
                           <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest flex items-center gap-1">
                             <Clock className="w-2.5 h-2.5" />
-                            {new Date(comm.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {formatDateTime(comm.createdAt)}
                           </span>
                         </div>
                         <p className="text-slate-600 font-medium text-xs bg-white/40 p-3.5 rounded-xl rounded-tl-none border border-white/60 group-hover:bg-white transition-colors leading-relaxed">{comm.content}</p>
@@ -488,20 +532,32 @@ function ResourceDetailsContent() {
               <motion.div
                 initial={{ opacity: 0, x: 24 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="rounded-[1.2rem] bg-gradient-to-br from-emerald-500 to-teal-600 p-4 shadow-xl w-full relative flex items-center justify-center overflow-hidden group min-h-[100px]"
+                className="rounded-[1.2rem] bg-gradient-to-br from-emerald-500 to-teal-600 shadow-xl w-full relative flex items-center justify-center overflow-hidden group min-h-[130px]"
               >
-                <div className="absolute inset-0 opacity-20">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="absolute rounded-full bg-white"
-                      style={{ width: `${80 + i * 40}px`, height: `${80 + i * 40}px`, top: `${15 + i * 5}%`, left: `${10 + i * 5}%`, opacity: 0.3 }} />
-                  ))}
-                </div>
-                <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 0.4, ease: "easeOut" }} className="relative z-10 flex flex-col items-center gap-3 text-center">
-                  <div className="p-4 bg-white/20 rounded-[1.2rem] backdrop-blur-md border border-white/30 shadow-md text-white">
-                    <Package className="w-10 h-10" />
-                  </div>
-                  <p className="font-black text-white/90 tracking-[0.15em] text-[10px] uppercase bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm shadow-sm">{item.category}</p>
-                </motion.div>
+                {item.image ? (
+                  <>
+                    <img src={item.image} alt={item.title || item.resourceName} className="w-full h-full object-cover absolute inset-0 rounded-[1.2rem]" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent rounded-[1.2rem]" />
+                    <div className="relative z-10 self-end w-full p-3">
+                      <p className="font-black text-white tracking-[0.15em] text-[10px] uppercase bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm shadow-sm w-max">{item.category}</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="absolute inset-0 opacity-20">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="absolute rounded-full bg-white"
+                          style={{ width: `${80 + i * 40}px`, height: `${80 + i * 40}px`, top: `${15 + i * 5}%`, left: `${10 + i * 5}%`, opacity: 0.3 }} />
+                      ))}
+                    </div>
+                    <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 0.4, ease: "easeOut" }} className="relative z-10 flex flex-col items-center gap-3 text-center p-4">
+                      <div className="p-4 bg-white/20 rounded-[1.2rem] backdrop-blur-md border border-white/30 shadow-md text-white">
+                        <Package className="w-10 h-10" />
+                      </div>
+                      <p className="font-black text-white/90 tracking-[0.15em] text-[10px] uppercase bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm shadow-sm">{item.category}</p>
+                    </motion.div>
+                  </>
+                )}
               </motion.div>
 
               {/* Poster Card */}

@@ -39,6 +39,20 @@ const iconMap = {
   Activity: Activity,
 };
 
+function formatDateTime(dt) {
+  if (!dt) return "—";
+  try {
+    let dateStr = dt;
+    if (Array.isArray(dt)) {
+      dateStr = `${dt[0]}-${String(dt[1]).padStart(2, '0')}-${String(dt[2]).padStart(2, '0')}T${String(dt[3] || 0).padStart(2, '0')}:${String(dt[4] || 0).padStart(2, '0')}`;
+    } else {
+      dateStr = String(dt).replace(" ", "T");
+    }
+    const d = new Date(dateStr);
+    return d.toLocaleString("en-BD", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  } catch { return dt; }
+}
+
 function ItemDetailsContent() {
   const searchParams = useSearchParams();
   const itemId = searchParams.get("id");
@@ -82,7 +96,7 @@ function ItemDetailsContent() {
 
       // 2. Fetch from backend
       try {
-        const res = await fetch(`http://localhost:8080/api/resources/${itemId}`);
+        const res = await fetch(`http://localhost:8080/api/resources/${itemId}`, { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
 
@@ -131,7 +145,7 @@ function ItemDetailsContent() {
 
     async function fetchComments() {
       try {
-        const res = await fetch(`http://localhost:8080/api/comments/ACADEMIC/${itemId}`);
+        const res = await fetch(`http://localhost:8080/api/comments/ACADEMIC/${itemId}`, { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
           setComments(data);
@@ -143,7 +157,7 @@ function ItemDetailsContent() {
 
     async function fetchUserReaction(email) {
       try {
-        const res = await fetch(`http://localhost:8080/api/resources/react/status/ACADEMIC/${itemId}/${email}`);
+        const res = await fetch(`http://localhost:8080/api/resources/react/status/ACADEMIC/${itemId}/${email}`, { cache: "no-store" });
         if (res.ok) {
           const text = await res.text();
           if (text) {
@@ -414,7 +428,7 @@ function ItemDetailsContent() {
                           <span className="font-black text-slate-800 text-xs">{comm.userName}</span>
                           <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest flex items-center gap-1">
                             <Clock className="w-2.5 h-2.5" />
-                            {new Date(comm.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {formatDateTime(comm.createdAt)}
                           </span>
                         </div>
                         <p className="text-slate-600 font-medium text-xs bg-white/40 p-3.5 rounded-xl rounded-tl-none border border-white/60 group-hover:bg-white transition-colors leading-relaxed">{comm.content}</p>
@@ -498,7 +512,7 @@ function ItemDetailsContent() {
                 <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-slate-100/50">
                   <div className="space-y-0.5">
                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Posted On</p>
-                    <p className="font-bold text-slate-700 text-xs">{item.postedDate || "Recent"}</p>
+                    <p className="font-bold text-slate-700 text-xs">{formatDateTime(item.createdAt || item.postedDate) || "Recent"}</p>
                   </div>
                   <div className="space-y-0.5">
                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Impact</p>

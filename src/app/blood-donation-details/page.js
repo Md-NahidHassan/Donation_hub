@@ -33,6 +33,10 @@ function BloodDonationDetailsContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const itemId = searchParams.get("id");
+    const refSource = searchParams.get("ref");
+
+    const backLink = refSource === "home" ? "/" : "/dashboard";
+    const backText = refSource === "home" ? "Back to Home" : "Back to Dashboard";
 
     const [isMounted, setIsMounted] = useState(false);
     const [item, setItem] = useState(null);
@@ -59,7 +63,7 @@ function BloodDonationDetailsContent() {
 
         const fetchItem = async () => {
             try {
-                const res = await fetch(`${API}/${itemId}`);
+                const res = await fetch(`${API}/${itemId}`, { cache: "no-store" });
                 if (res.ok) {
                     const data = await res.json();
                     setItem(data);
@@ -93,7 +97,7 @@ function BloodDonationDetailsContent() {
 
         async function fetchComments() {
             try {
-                const res = await fetch(`${COMMENTS_API}/BLOOD_DONATION/${itemId}`);
+                const res = await fetch(`${COMMENTS_API}/BLOOD_DONATION/${itemId}`, { cache: "no-store" });
                 if (res.ok) {
                     const data = await res.json();
                     setComments(data);
@@ -103,7 +107,7 @@ function BloodDonationDetailsContent() {
 
         async function fetchUserReaction(email) {
             try {
-                const res = await fetch(`http://localhost:8080/api/resources/react/status/BLOOD_DONATION/${itemId}/${email}`);
+                const res = await fetch(`http://localhost:8080/api/resources/react/status/BLOOD_DONATION/${itemId}/${email}`, { cache: "no-store" });
                 if (res.ok) {
                     const text = await res.text();
                     if (text) {
@@ -205,11 +209,11 @@ function BloodDonationDetailsContent() {
             <main className="max-w-5xl mx-auto w-full px-4 py-4 md:py-5 z-10 flex flex-col relative">
                 <header className="mb-4 md:mb-5">
                     <Link
-                        href="/dashboard"
+                        href={backLink}
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/50 backdrop-blur-md border border-white/80 shadow-sm text-slate-700 font-bold hover:bg-white/90 hover:text-slate-900 transition-all group w-max text-xs"
                     >
                         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                        Back to Dashboard
+                        {backText}
                     </Link>
                 </header>
 
@@ -222,8 +226,8 @@ function BloodDonationDetailsContent() {
                             <h2 className="text-2xl font-black text-slate-800 mb-1">Request Not Found</h2>
                             <p className="text-slate-400 font-medium text-sm">This request may have been fulfilled or removed.</p>
                         </div>
-                        <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-red-500 text-white font-black shadow-md hover:bg-red-600 transition-all text-sm">
-                            Back to Dashboard
+                        <Link href={backLink} className="px-6 py-3 rounded-xl bg-red-500 text-white font-black shadow-md hover:bg-red-600 transition-all text-sm">
+                            {backText}
                         </Link>
                     </motion.div>
                 )}
@@ -326,7 +330,7 @@ function BloodDonationDetailsContent() {
                                                     <span className="font-black text-slate-800 text-xs">{comm.userName}</span>
                                                     <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest flex items-center gap-1">
                                                         <Clock className="w-2.5 h-2.5" />
-                                                        {new Date(comm.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        {formatDateTime(comm.createdAt)}
                                                     </span>
                                                 </div>
                                                 <p className="text-slate-600 font-medium text-xs bg-white/40 p-3.5 rounded-xl rounded-tl-none border border-white/60 group-hover:bg-white transition-colors leading-relaxed">{comm.content}</p>

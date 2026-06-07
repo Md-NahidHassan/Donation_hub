@@ -13,6 +13,21 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { mockDb } from "@/utils/mockDb";
 
+// ── date formatter ─────────────────────────────────────────────────────────────
+function formatDateTime(dt) {
+  if (!dt) return "—";
+  try {
+    let dateStr = dt;
+    if (Array.isArray(dt)) {
+      dateStr = `${dt[0]}-${String(dt[1]).padStart(2, '0')}-${String(dt[2]).padStart(2, '0')}T${String(dt[3] || 0).padStart(2, '0')}:${String(dt[4] || 0).padStart(2, '0')}`;
+    } else {
+      dateStr = String(dt).replace(" ", "T");
+    }
+    const d = new Date(dateStr);
+    return d.toLocaleString("en-BD", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  } catch { return dt; }
+}
+
 // ── Copyable field ───────────────────────────────────────────────────────────
 function CopyField({ label, value, mono = false }) {
   const [copied, setCopied] = useState(false);
@@ -119,7 +134,7 @@ function CampaignDetailsContent() {
     };
 
     const fetchCampaign = async () => {
-      const res = await fetch(`http://localhost:8080/api/campaigns/${id}`).catch(() => null);
+      const res = await fetch(`http://localhost:8080/api/campaigns/${id}`, { cache: "no-store" }).catch(() => null);
       if (res && res.ok) {
         const data = await res.json().catch(() => null);
         if (data) {
@@ -146,7 +161,7 @@ function CampaignDetailsContent() {
           return;
         }
       }
-      const allRes = await fetch("http://localhost:8080/api/campaigns").catch(() => null);
+      const allRes = await fetch("http://localhost:8080/api/campaigns", { cache: "no-store" }).catch(() => null);
       if (allRes && allRes.ok) {
         const all = await allRes.json().catch(() => null);
         if (all) {
@@ -181,7 +196,7 @@ function CampaignDetailsContent() {
 
     const fetchComments = async () => {
       try {
-        const res = await fetch(`http://localhost:8080/api/comments/CAMPAIGN/${id}`);
+        const res = await fetch(`http://localhost:8080/api/comments/CAMPAIGN/${id}`, { cache: "no-store" });
         if (res.ok) setComments(await res.json());
       } catch (err) { console.error("Error fetching comments:", err); }
     };
@@ -513,7 +528,7 @@ function CampaignDetailsContent() {
                           <span className="font-black text-slate-800 text-xs">{comm.userName}</span>
                           <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest flex items-center gap-1">
                             <Clock className="w-2.5 h-2.5" />
-                            {new Date(comm.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {formatDateTime(comm.createdAt)}
                           </span>
                         </div>
                         <p className="text-slate-600 font-medium text-xs bg-slate-50/50 p-2.5 rounded-xl rounded-tl-none border border-slate-100 group-hover:bg-white transition-colors">{comm.content}</p>
