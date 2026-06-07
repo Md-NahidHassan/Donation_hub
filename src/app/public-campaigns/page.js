@@ -132,25 +132,25 @@ export default function PublicCampaignsPage() {
       </div>
 
       {/* TOP NAVIGATION */}
-      <header className="max-w-7xl mx-auto w-full px-6 pt-12 z-10">
+      <header className="max-w-7xl mx-auto w-full px-4 pt-4 z-10">
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/50 backdrop-blur-md border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-slate-700 font-bold hover:bg-white/90 hover:text-slate-900 transition-all group w-max"
+          className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/50 backdrop-blur-md border border-white/80 shadow text-slate-700 font-bold hover:bg-white/90 hover:text-slate-900 transition-all group w-max text-xs"
         >
-          <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
           Back to Dashboard
         </Link>
       </header>
 
       {/* MAIN CONTENT */}
-      <main className="max-w-7xl mx-auto w-full px-6 py-16 z-10 flex flex-col flex-1 pb-32">
+      <main className="max-w-7xl mx-auto w-full px-4 py-6 z-10 flex flex-col flex-1 pb-20">
 
         {/* HEADER BLOCK */}
-        <div className="mb-20 text-center max-w-3xl mx-auto">
+        <div className="mb-10 text-center max-w-2xl mx-auto">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-[1.1] mb-6"
+            className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-[1.1] mb-3"
           >
             Ongoing <span className="text-transparent bg-clip-text bg-gradient-to-r from-uiu-emerald to-teal-500">Impact Drives</span> at UIU
           </motion.h1>
@@ -158,47 +158,47 @@ export default function PublicCampaignsPage() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
-            className="w-24 h-2 bg-gradient-to-r from-uiu-orange to-rose-500 rounded-full mx-auto mb-8 shadow-sm"
+            className="w-16 h-1.5 bg-gradient-to-r from-uiu-orange to-rose-500 rounded-full mx-auto mb-4 shadow-sm"
           />
-          <p className="text-xl font-medium text-slate-500">
+          <p className="text-sm font-medium text-slate-500">
             Discover active social campaigns and contribute towards a sustainable future for our community.
           </p>
         </div>
 
         {/* CAMPAIGN GRID */}
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-4 bg-white/30 backdrop-blur-md rounded-[3rem] border border-white">
-            <Loader2 className="w-16 h-12 text-uiu-emerald animate-spin" />
-            <p className="text-slate-500 font-black text-xl tracking-tight">Fetching live system data...</p>
+          <div className="flex flex-col items-center justify-center py-16 gap-3 bg-white/30 backdrop-blur-md rounded-2xl border border-white">
+            <Loader2 className="w-10 h-10 text-uiu-emerald animate-spin" />
+            <p className="text-slate-500 font-black text-base tracking-tight">Fetching live system data...</p>
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center py-16 px-8 rounded-[3rem] bg-rose-50 border border-rose-200 gap-6">
-            <AlertCircle className="w-12 h-12 text-rose-500" />
+          <div className="flex flex-col items-center justify-center py-10 px-6 rounded-2xl bg-rose-50 border border-rose-200 gap-4">
+            <AlertCircle className="w-8 h-8 text-rose-500" />
             <div className="text-center">
-              <h3 className="text-2xl font-black text-rose-800 tracking-tight">Connection Timeout</h3>
-              <p className="text-rose-500 font-medium mt-2">The system api at :8080 is unreachable. Displaying cached local data.</p>
+              <h3 className="text-xl font-black text-rose-800 tracking-tight">Connection Timeout</h3>
+              <p className="text-rose-500 font-medium text-xs mt-1">The system api at :8080 is unreachable. Displaying cached local data.</p>
             </div>
             <button
               onClick={() => window.location.reload()}
-              className="px-8 py-3 bg-white border border-rose-200 rounded-full text-rose-600 font-black hover:bg-rose-100 transition-all shadow-xl shadow-rose-100"
+              className="px-6 py-2 bg-white border border-rose-200 rounded-full text-xs text-rose-600 font-black hover:bg-rose-100 transition-all shadow-xl shadow-rose-100"
             >
               Reconnect Now
             </button>
           </div>
         ) : campaigns.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {campaigns.map((campaign, i) => (
               <motion.div
                 key={campaign._uniqueId || campaign.id}
                 initial={{ opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1, duration: 0.6, type: "spring" }}
-                whileHover={{ y: -10 }}
-                className="group flex flex-col h-full bg-white/60 backdrop-blur-2xl rounded-[3rem] border border-white shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer"
+                whileHover={{ y: -6 }}
+                className="group flex flex-col h-full bg-white/60 backdrop-blur-2xl rounded-2xl border border-white shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer"
               >
                 {/* Card Illustration/Icon Area — shows uploaded image if present */}
                 {campaign.image ? (
-                  <div className="relative overflow-hidden border-b border-white" style={{ height: "200px" }}>
+                  <div className="relative overflow-hidden border-b border-white" style={{ height: "140px" }}>
                     <img
                       src={campaign.image}
                       alt={campaign.title}
@@ -207,19 +207,19 @@ export default function PublicCampaignsPage() {
                     {/* Gradient overlay for readability */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
                     {/* Badge */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
-                      <span className="px-5 py-1.5 bg-white/75 backdrop-blur-md text-uiu-emerald text-[10px] font-black tracking-widest uppercase rounded-full border border-white shadow-sm whitespace-nowrap">
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+                      <span className="px-3 py-1 bg-white/75 backdrop-blur-md text-uiu-emerald text-[9px] font-black tracking-widest uppercase rounded-full border border-white shadow-sm whitespace-nowrap">
                         Live Community Project
                       </span>
                     </div>
                   </div>
                 ) : (
-                  <div className={`p-10 bg-gradient-to-br ${campaign.gradient} relative overflow-hidden flex flex-col items-center justify-center border-b border-white`}>
-                    <div className="p-6 bg-white rounded-[2rem] shadow-xl relative z-10 group-hover:scale-110 transition-transform duration-500">
+                  <div className={`p-6 bg-gradient-to-br ${campaign.gradient} relative overflow-hidden flex flex-col items-center justify-center border-b border-white`}>
+                    <div className="p-3 bg-white rounded-xl shadow-xl relative z-10 group-hover:scale-110 transition-transform duration-500">
                       {campaign.icon}
                     </div>
-                    <div className="mt-6 flex items-center gap-2 relative z-10">
-                      <span className="px-5 py-1.5 bg-uiu-emerald/20 text-uiu-emerald text-[10px] font-black tracking-widest uppercase rounded-full border border-uiu-emerald/30 shadow-sm">
+                    <div className="mt-4 flex items-center gap-1.5 relative z-10">
+                      <span className="px-3 py-1 bg-uiu-emerald/20 text-uiu-emerald text-[9px] font-black tracking-widest uppercase rounded-full border border-uiu-emerald/30 shadow-sm">
                         Live Community Project
                       </span>
                     </div>
@@ -227,31 +227,31 @@ export default function PublicCampaignsPage() {
                 )}
 
                 {/* Card Meta Content */}
-                <div className="p-10 flex flex-col flex-1 bg-white/80 border-t border-white">
-                  <h3 className="text-3xl font-black text-slate-800 mb-4 leading-tight group-hover:text-uiu-orange transition-colors line-clamp-2">
+                <div className="p-5 flex flex-col flex-1 bg-white/80 border-t border-white">
+                  <h3 className="text-xl font-black text-slate-800 mb-2 leading-tight group-hover:text-uiu-orange transition-colors line-clamp-2">
                     {campaign.title}
                   </h3>
-                  <p className="text-slate-500 font-medium text-sm leading-relaxed mb-10 line-clamp-3">
+                  <p className="text-slate-500 font-medium text-[10px] leading-relaxed mb-4 line-clamp-3">
                     {campaign.description || "Help support our university community initiative through sustainable resource sharing and donations."}
                   </p>
 
                   {/* Tracking Progress Section */}
-                  <div className="mt-auto space-y-5">
+                  <div className="mt-auto space-y-3">
                     <div className="flex justify-between items-end">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Goal Status</span>
-                        <span className="text-2xl font-black text-uiu-emerald">{campaign.progress}%</span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Goal Status</span>
+                        <span className="text-lg font-black text-uiu-emerald">{campaign.progress}%</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Goal</span>
-                        <div className="flex items-center gap-1 text-slate-900 font-bold">
-                          <Target className="w-4 h-4 text-rose-500" /> {campaign.goal || campaign.items}
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Goal</span>
+                        <div className="flex items-center gap-1 text-slate-900 font-bold text-xs">
+                          <Target className="w-3 h-3 text-rose-500" /> {campaign.goal || campaign.items}
                         </div>
                       </div>
                     </div>
 
                     {/* Sleek Progress Bar */}
-                    <div className="h-4 w-full bg-slate-100 rounded-full shadow-inner overflow-hidden border border-slate-100">
+                    <div className="h-2.5 w-full bg-slate-100 rounded-full shadow-inner overflow-hidden border border-slate-100">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${campaign.progress}%` }}
@@ -260,22 +260,22 @@ export default function PublicCampaignsPage() {
                       />
                     </div>
 
-                    <div className="flex items-center justify-between pt-6 border-t border-slate-100/50">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-slate-300" />
-                          <span className="text-xs font-black text-slate-400 tracking-tight">{campaign.donors || 0} Donors</span>
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-100/50">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1">
+                          <Users className="w-3 h-3 text-slate-300" />
+                          <span className="text-[10px] font-black text-slate-400 tracking-tight">{campaign.donors || 0} Donors</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-uiu-orange/60" />
-                          <span className="text-xs font-black text-uiu-orange tracking-tight">{campaign.daysLeft} Days Left</span>
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-uiu-orange/60" />
+                          <span className="text-[10px] font-black text-uiu-orange tracking-tight">{campaign.daysLeft} Days Left</span>
                         </div>
                       </div>
                       <Link
                         href={`/campaign-details?id=${campaign.id}`}
-                        className="group/btn flex items-center gap-2 text-uiu-orange font-black text-base transition-opacity"
+                        className="group/btn flex items-center gap-1 text-uiu-orange font-black text-sm transition-opacity"
                       >
-                        Join <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+                        Join <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                       </Link>
                     </div>
 
@@ -286,10 +286,10 @@ export default function PublicCampaignsPage() {
                       const total = (r.LIKE || 0) + (r.LOVE || 0) + (r.SAD || 0);
                       if (total === 0) return null;
                       return (
-                        <div className="flex items-center gap-3 pt-3 border-t border-slate-100/30">
-                          {r.LIKE > 0 && <span className="text-[11px] font-black text-slate-400">👍 {r.LIKE}</span>}
-                          {r.LOVE > 0 && <span className="text-[11px] font-black text-slate-400">❤️ {r.LOVE}</span>}
-                          {r.SAD > 0 && <span className="text-[11px] font-black text-slate-400">😢 {r.SAD}</span>}
+                        <div className="flex items-center gap-2 pt-2 border-t border-slate-100/30">
+                          {r.LIKE > 0 && <span className="text-[9px] font-black text-slate-400">👍 {r.LIKE}</span>}
+                          {r.LOVE > 0 && <span className="text-[9px] font-black text-slate-400">❤️ {r.LOVE}</span>}
+                          {r.SAD > 0 && <span className="text-[9px] font-black text-slate-400">😢 {r.SAD}</span>}
                         </div>
                       );
                     })()}
@@ -299,7 +299,7 @@ export default function PublicCampaignsPage() {
             ))}
           </div>
         ) : (
-          <div className="col-span-full py-20 text-center text-slate-400 font-medium italic bg-white/40 rounded-[3rem] border border-dashed border-slate-200">
+          <div className="col-span-full py-10 text-center text-[11px] text-slate-400 font-medium italic bg-white/40 rounded-2xl border border-dashed border-slate-200">
             No active impact campaigns found. Check back soon!
           </div>
         )}

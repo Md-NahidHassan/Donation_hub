@@ -8,6 +8,7 @@ import {
   Building2, Smartphone, Package, Coins, Link2, ExternalLink,
   CreditCard, ArrowRight, MessageSquare, Send, User, Reply, Trash2, MessageCircle, AlertCircle
 } from "lucide-react";
+import UserAvatar from "@/components/UserAvatar";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { mockDb } from "@/utils/mockDb";
@@ -95,24 +96,24 @@ function CampaignDetailsContent() {
       const next = stored + 1;
       localStorage.setItem(countKey, String(next));
       setCampaign(prev => prev ? { ...prev, viewCount: next } : prev);
-      fetch(`http://localhost:8080/api/resources/view/CAMPAIGN/${id}`, { method: 'PUT' }).catch(() => {});
+      fetch(`http://localhost:8080/api/resources/view/CAMPAIGN/${id}`, { method: 'PUT' }).catch(() => { });
     } else {
       // Restore stored count on revisit
       if (stored > 0) setCampaign(prev => prev ? { ...prev, viewCount: stored } : prev);
     }
   }, [id]);
 
-  // ── Load user's stored reaction (runs once when id is known) ─────────────
+  // ── Load user's stored reaction (runs once when id + user are known) ──────
   useEffect(() => {
     if (!id) return;
-    const stored = localStorage.getItem(`campaign_reaction_user_${id}`);
+    const userStr = localStorage.getItem("user");
+    const currentUser = userStr ? JSON.parse(userStr) : null;
+    const userEmail = currentUser?.email || "anonymous";
+    const stored = localStorage.getItem(`campaign_reaction_user_${id}_${userEmail}`);
     if (stored) setUserReaction(stored);
   }, [id]);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
-    const currentUser = userStr ? JSON.parse(userStr) : null;
-
     const transform = (data) => {
       return mockDb.mapCampaign(data);
     };
@@ -121,14 +122,56 @@ function CampaignDetailsContent() {
       const res = await fetch(`http://localhost:8080/api/campaigns/${id}`).catch(() => null);
       if (res && res.ok) {
         const data = await res.json().catch(() => null);
-        if (data) { setCampaign(transform(data)); return; }
+        if (data) {
+          const mapped = transform(data);
+          // Merge with localStorage reaction counts (localStorage is source of truth for counts)
+          const storageKey = `campaign_reactions_${id}`;
+          const localStored = localStorage.getItem(storageKey);
+          if (localStored) {
+            try {
+              const localCounts = JSON.parse(localStored);
+              mapped.likeCount = localCounts.LIKE ?? mapped.likeCount ?? 0;
+              mapped.loveCount = localCounts.LOVE ?? mapped.loveCount ?? 0;
+              mapped.sadCount = localCounts.SAD ?? mapped.sadCount ?? 0;
+            } catch {}
+          } else {
+            // First time: seed localStorage with backend counts
+            localStorage.setItem(storageKey, JSON.stringify({
+              LIKE: mapped.likeCount || 0,
+              LOVE: mapped.loveCount || 0,
+              SAD: mapped.sadCount || 0,
+            }));
+          }
+          setCampaign(mapped);
+          return;
+        }
       }
       const allRes = await fetch("http://localhost:8080/api/campaigns").catch(() => null);
       if (allRes && allRes.ok) {
         const all = await allRes.json().catch(() => null);
         if (all) {
           const found = all.find(c => c.id?.toString() === id);
-          if (found) { setCampaign(transform(found)); return; }
+          if (found) {
+            const mapped = transform(found);
+            const storageKey = `campaign_reactions_${id}`;
+            const localStored = localStorage.getItem(storageKey);
+            if (localStored) {
+              try {
+                const localCounts = JSON.parse(localStored);
+                mapped.likeCount = localCounts.LIKE ?? mapped.likeCount ?? 0;
+                mapped.loveCount = localCounts.LOVE ?? mapped.loveCount ?? 0;
+                mapped.sadCount = localCounts.SAD ?? mapped.sadCount ?? 0;
+              } catch {}
+            } else {
+              localStorage.setItem(storageKey, JSON.stringify({
+                LIKE: mapped.likeCount || 0,
+                LOVE: mapped.loveCount || 0,
+                SAD: mapped.sadCount || 0,
+              }));
+            }
+            setCampaign(mapped);
+            return;
+          }
         }
       }
       const mockAll = mockDb.getCampaigns();
@@ -149,13 +192,14 @@ function CampaignDetailsContent() {
     }
   }, [id]);  // ← Only re-fetch when id changes, NOT when user changes
 
-  // Load reactions & views from localStorage (works without login / backend)
+  // Restore user reaction from localStorage after campaign loads
   useEffect(() => {
     if (!campaign?.id) return;
+    const userStr = localStorage.getItem("user");
+    const currentUser = userStr ? JSON.parse(userStr) : null;
+    const userEmail = currentUser?.email || "anonymous";
     const campaignId = campaign.id.toString();
-
-    // Restore user reaction from localStorage
-    const storedUserReaction = localStorage.getItem(`campaign_reaction_user_${campaignId}`);
+    const storedUserReaction = localStorage.getItem(`campaign_reaction_user_${campaignId}_${userEmail}`);
     if (storedUserReaction) setUserReaction(storedUserReaction);
   }, [campaign?.id]);
 
@@ -245,9 +289,10 @@ function CampaignDetailsContent() {
   };
 
   const handleReact = (reactionType) => {
-    // Always use URL `id` as the stable storage key
+    // Per-user reaction key so different users get separate reactions
+    const userEmail = user?.email || "anonymous";
     const storageKey = `campaign_reactions_${id}`;
-    const userKey = `campaign_reaction_user_${id}`;
+    const userKey = `campaign_reaction_user_${id}_${userEmail}`;
 
     const stored = JSON.parse(
       localStorage.getItem(storageKey) ||
@@ -256,12 +301,12 @@ function CampaignDetailsContent() {
     const currentUserReaction = localStorage.getItem(userKey);
 
     if (currentUserReaction === reactionType) {
-      // Toggle off
+      // Toggle off — remove this user's reaction
       stored[reactionType] = Math.max(0, (stored[reactionType] || 0) - 1);
       localStorage.removeItem(userKey);
       setUserReaction(null);
     } else {
-      // Remove old reaction if switching
+      // Remove old reaction count if switching
       if (currentUserReaction && stored[currentUserReaction] !== undefined) {
         stored[currentUserReaction] = Math.max(0, (stored[currentUserReaction] || 0) - 1);
       }
@@ -282,7 +327,7 @@ function CampaignDetailsContent() {
     if (user?.email) {
       fetch(`http://localhost:8080/api/resources/react/CAMPAIGN/${id}/${reactionType}/${user.email}`, {
         method: 'PUT'
-      }).catch(() => {});
+      }).catch(() => { });
     }
   };
 
@@ -319,7 +364,7 @@ function CampaignDetailsContent() {
           <h1 className="text-3xl font-black text-slate-800 mb-4 tracking-tight">Campaign Ended</h1>
           <p className="text-slate-500 font-medium mb-8 leading-relaxed">This campaign's duration has expired and it is no longer available for public viewing or donations.</p>
           <Link href="/public-campaigns" className="flex items-center justify-center gap-2 w-full py-4 bg-uiu-emerald hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 text-white font-black rounded-2xl transition-all hover:scale-105 active:scale-95">
-             <ArrowLeft className="w-5 h-5" /> Back to Campaigns
+            <ArrowLeft className="w-5 h-5" /> Back to Campaigns
           </Link>
         </div>
       </div>
@@ -335,60 +380,60 @@ function CampaignDetailsContent() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-white/40 blur-[100px] rounded-full" />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 py-8 md:py-12">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 py-3 md:py-4">
         {/* BACK NAV */}
         {ref !== "share" && (
-          <header className="mb-12">
-            <Link href={ref === "home" ? "/" : "/dashboard"} className="group inline-flex items-center gap-3 px-6 py-3 rounded-full bg-white/60 backdrop-blur-md border border-white shadow-sm hover:bg-white hover:shadow-xl transition-all">
-              <ArrowLeft className="w-5 h-5 text-slate-400 group-hover:-translate-x-1 transition-transform" />
-              <span className="font-black text-slate-700">Back to {ref === "home" ? "Home Page" : "Dashboard"}</span>
+          <header className="mb-3">
+            <Link href={ref === "home" ? "/" : "/dashboard"} className="group inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/60 backdrop-blur-md border border-white shadow-sm hover:bg-white hover:shadow-xl transition-all">
+              <ArrowLeft className="w-4 h-4 text-slate-400 group-hover:-translate-x-1 transition-transform" />
+              <span className="font-black text-slate-700 text-sm">Back to {ref === "home" ? "Home Page" : "Dashboard"}</span>
             </Link>
           </header>
         )}
 
         <main>
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
 
             {/* LEFT: DETAILS & COMMENTS */}
-            <div className="lg:col-span-7 space-y-8">
+            <div className="lg:col-span-7 space-y-3">
               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-                className="p-10 md:p-12 rounded-[3.5rem] bg-white/70 backdrop-blur-xl border border-white shadow-2xl relative overflow-hidden">
+                className="p-5 rounded-2xl bg-white/70 backdrop-blur-xl border border-white shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
                   <Target className="w-64 h-64 -mr-20 -mt-20" />
                 </div>
                 <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-6">
-                    <span className={`px-4 py-1.5 text-[10px] font-black tracking-widest uppercase rounded-full border ${isExpired ? "bg-rose-50 text-rose-500 border-rose-200" : "bg-uiu-emerald/10 text-uiu-emerald border-uiu-emerald/20"}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`px-3 py-1 text-[9px] font-black tracking-widest uppercase rounded-full border ${isExpired ? "bg-rose-50 text-rose-500 border-rose-200" : "bg-uiu-emerald/10 text-uiu-emerald border-uiu-emerald/20"}`}>
                       {isExpired ? "Ended" : "Live Campaign"}
                     </span>
-                    <span className="flex items-center gap-1.5 text-slate-400 text-[10px] font-black uppercase tracking-widest">
-                      <Users className="w-3.5 h-3.5" /> {campaign.donors || 0} Supporters
+                    <span className="flex items-center gap-1 text-slate-400 text-[9px] font-black uppercase tracking-widest">
+                      <Users className="w-3 h-3" /> {campaign.donors || 0} Supporters
                     </span>
                   </div>
 
                   {campaign.image && (
-                    <div className="w-full h-64 md:h-80 mb-8 rounded-3xl overflow-hidden relative shadow-lg">
+                    <div className="w-full h-36 mb-3 rounded-xl overflow-hidden relative shadow-lg">
                       <img src={campaign.image} alt={campaign.title} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
                     </div>
                   )}
 
-                  <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-[1.1] mb-8">{campaign.title}</h1>
-                  <p className="text-lg md:text-xl text-slate-500 font-medium leading-relaxed mb-12">
+                  <h1 className="text-xl font-black text-slate-900 tracking-tight leading-tight mb-1">{campaign.title}</h1>
+                  <p className="text-sm text-slate-500 font-medium leading-relaxed mb-3 line-clamp-2">
                     {campaign.description || "Join us in making a difference! Your contribution helps provide essential resources to students in need across United International University."}
                   </p>
 
                   {/* COUNTDOWN + GOAL */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-                    <div className="p-8 rounded-[2.5rem] bg-slate-900 text-white shadow-xl relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-uiu-orange/20 blur-3xl -mr-16 -mt-16 group-hover:bg-uiu-orange/40 transition-all" />
-                      <div className="flex items-center gap-3 mb-6">
-                        <Clock className="w-5 h-5 text-uiu-orange" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="p-3 rounded-xl bg-slate-900 text-white shadow-xl relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 w-16 h-16 bg-uiu-orange/20 blur-2xl -mr-8 -mt-8 group-hover:bg-uiu-orange/40 transition-all" />
+                      <div className="flex items-center gap-2 mb-2">
+                        <Clock className="w-3.5 h-3.5 text-uiu-orange" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
                           {isExpired ? "Campaign Ended" : "Ends in"}
                         </span>
                       </div>
-                      <div className="flex gap-4 items-end">
+                      <div className="flex gap-2 items-end">
                         {[
                           { val: timeLeft.days, label: "Days" },
                           { val: timeLeft.hours, label: "Hrs" },
@@ -396,40 +441,40 @@ function CampaignDetailsContent() {
                           { val: timeLeft.seconds, label: "Sec", orange: true },
                         ].map(({ val, label, orange }) => (
                           <div key={label} className="flex flex-col items-center">
-                            <span className={`text-3xl font-black leading-none tabular-nums ${orange ? "text-uiu-orange" : ""}`}>
+                            <span className={`text-lg font-black leading-none tabular-nums ${orange ? "text-uiu-orange" : ""}`}>
                               {String(val).padStart(2, "0")}
                             </span>
-                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 mt-2">{label}</span>
+                            <span className="text-[7px] font-black uppercase tracking-widest text-slate-500 mt-1">{label}</span>
                           </div>
                         ))}
-                        <Calendar className="w-8 h-8 text-white/10 ml-auto" />
+                        <Calendar className="w-5 h-5 text-white/10 ml-auto" />
                       </div>
                     </div>
 
-                    <div className="p-8 rounded-[2.5rem] bg-white border border-slate-100 shadow-xl">
-                      <div className="flex items-center gap-3 mb-6">
-                        <Target className="w-5 h-5 text-uiu-emerald" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Target Goal</span>
+                    <div className="p-3 rounded-xl bg-white border border-slate-100 shadow-xl">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Target className="w-3.5 h-3.5 text-uiu-emerald" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Target Goal</span>
                       </div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-4xl font-black text-slate-900">{campaign.goal || 500}</span>
-                        <span className="text-slate-400 font-bold">Items</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black text-slate-900">{campaign.goal || 500}</span>
+                        <span className="text-slate-400 font-bold text-sm">Items</span>
                       </div>
-                      <div className="mt-4 flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-uiu-emerald" />
-                        <span className="text-xs font-bold text-uiu-emerald">{campaign.progress || 0}% achieved so far</span>
+                      <div className="mt-1 flex items-center gap-1">
+                        <TrendingUp className="w-3.5 h-3.5 text-uiu-emerald" />
+                        <span className="text-xs font-bold text-uiu-emerald">{campaign.progress || 0}% achieved</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-end px-2">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progress</span>
-                      <span className="text-base font-black text-slate-900">{campaign.progress || 0}%</span>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-end px-1">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Progress</span>
+                      <span className="text-sm font-black text-slate-900">{campaign.progress || 0}%</span>
                     </div>
-                    <div className="h-6 w-full bg-slate-100/50 rounded-full overflow-hidden p-1 border border-slate-100 shadow-inner">
+                    <div className="h-3 w-full bg-slate-100/50 rounded-full overflow-hidden border border-slate-100 shadow-inner">
                       <motion.div initial={{ width: 0 }} animate={{ width: `${campaign.progress || 0}%` }} transition={{ duration: 1.5, ease: "easeOut" }}
-                        className="h-full bg-gradient-to-r from-uiu-emerald via-emerald-400 to-teal-400 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.3)]" />
+                        className="h-full bg-gradient-to-r from-uiu-emerald via-emerald-400 to-teal-400 rounded-full" />
                     </div>
                   </div>
                 </div>
@@ -439,39 +484,39 @@ function CampaignDetailsContent() {
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white/70 backdrop-blur-xl border border-white rounded-[2.5rem] p-10 shadow-xl space-y-8"
+                className="bg-white/70 backdrop-blur-xl border border-white rounded-2xl p-4 shadow-xl space-y-3"
               >
-                <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
-                  <MessageSquare className="w-6 h-6 text-uiu-emerald" /> Campaign Discussion ({comments.length})
+                <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-uiu-emerald" /> Discussion ({comments.length})
                 </h3>
 
                 <form onSubmit={handlePostComment} className="relative">
                   <textarea
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Share your thoughts or ask a question..."
-                    className="w-full p-5 pr-14 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-uiu-emerald/10 focus:border-uiu-emerald transition-all resize-none min-h-[100px]"
+                    placeholder="Share your thoughts..."
+                    className="w-full p-3 pr-10 bg-slate-50 border border-slate-100 rounded-xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-uiu-emerald/10 focus:border-uiu-emerald transition-all resize-none min-h-[60px] text-sm"
                   />
-                  <button type="submit" className="absolute bottom-4 right-4 p-3 bg-uiu-emerald text-white rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all">
-                    <Send className="w-5 h-5" />
+                  <button type="submit" className="absolute bottom-2 right-2 p-2 bg-uiu-emerald text-white rounded-lg shadow-lg hover:scale-105 active:scale-95 transition-all">
+                    <Send className="w-3.5 h-3.5" />
                   </button>
                 </form>
 
-                <div className="space-y-6 max-h-[500px] overflow-y-auto no-scrollbar pr-2">
+                <div className="space-y-3 max-h-[180px] overflow-y-auto no-scrollbar pr-1">
                   {comments.map((comm, i) => (
-                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} key={comm.id} className="flex gap-4 group">
-                      <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400 shrink-0 border border-indigo-100 shadow-sm">
-                        <User className="w-5 h-5" />
+                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} key={comm.id} className="flex gap-2 group">
+                      <div className="w-7 h-7 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400 shrink-0 border border-indigo-100 overflow-hidden">
+                        <UserAvatar email={comm.userEmail} name={comm.userName} iconClassName="w-3.5 h-3.5" className="w-7 h-7 rounded-full" />
                       </div>
-                      <div className="flex-1 space-y-1">
+                      <div className="flex-1 space-y-0.5">
                         <div className="flex items-center justify-between">
-                          <span className="font-black text-slate-800 text-sm">{comm.userName}</span>
-                          <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
+                          <span className="font-black text-slate-800 text-xs">{comm.userName}</span>
+                          <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" />
                             {new Date(comm.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
-                        <p className="text-slate-600 font-medium text-sm bg-slate-50/50 p-4 rounded-2xl rounded-tl-none border border-slate-100 group-hover:bg-white transition-colors">{comm.content}</p>
+                        <p className="text-slate-600 font-medium text-xs bg-slate-50/50 p-2.5 rounded-xl rounded-tl-none border border-slate-100 group-hover:bg-white transition-colors">{comm.content}</p>
 
                         <div className="flex items-center gap-4 pt-1">
                           <button
@@ -505,11 +550,11 @@ function CampaignDetailsContent() {
                     </motion.div>
                   ))}
                   {comments.length === 0 && (
-                    <div className="py-10 text-center flex flex-col items-center gap-4">
-                      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-200">
-                        <MessageCircle className="w-8 h-8" />
+                    <div className="py-4 text-center flex flex-col items-center gap-2">
+                      <div className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-200">
+                        <MessageCircle className="w-5 h-5" />
                       </div>
-                      <p className="text-sm font-bold text-slate-400">No discussion yet. Start the conversation!</p>
+                      <p className="text-xs font-bold text-slate-400">No discussion yet.</p>
                     </div>
                   )}
                 </div>
@@ -517,48 +562,48 @@ function CampaignDetailsContent() {
             </div>
 
             {/* RIGHT: ACTION & STATS */}
-            <div className="lg:col-span-5 flex flex-col gap-8">
+            <div className="lg:col-span-5 flex flex-col gap-3">
 
               {/* QUOTE CARD */}
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                className="p-10 rounded-[3.5rem] bg-white border border-white shadow-2xl flex flex-col items-center text-center group relative overflow-hidden">
+                className="p-4 rounded-2xl bg-white border border-white shadow-2xl flex flex-col items-center text-center group relative overflow-hidden">
 
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-uiu-emerald via-uiu-orange to-uiu-emerald opacity-30" />
 
-                <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
-                  <Heart className="w-7 h-7 text-uiu-emerald fill-uiu-emerald/20" />
+                <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-500">
+                  <Heart className="w-4 h-4 text-uiu-emerald fill-uiu-emerald/20" />
                 </div>
 
-                <p className="text-xl md:text-2xl font-black text-slate-800 leading-tight italic tracking-tight mb-8">
-                  "Serving humanity earns the Creator's grace. Your kindness can light up someone's life."
+                <p className="text-sm font-black text-slate-800 leading-tight italic tracking-tight mb-3">
+                  "Your kindness can light up someone's life."
                 </p>
 
-                <div className="w-full flex flex-col gap-4">
+                <div className="w-full flex flex-col gap-2">
                   <button
                     onClick={() => { setShowDonate(true); setShowSuccess(false); }}
-                    className="w-full py-5 rounded-2xl bg-uiu-emerald text-white font-black text-lg shadow-xl shadow-emerald-200 hover:bg-emerald-600 hover:-translate-y-1 transition-all flex items-center justify-center gap-3"
+                    className="w-full py-3 rounded-xl bg-uiu-emerald text-white font-black text-sm shadow-lg shadow-emerald-200 hover:bg-emerald-600 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
                   >
-                    Donate Now <Heart className="w-6 h-6 fill-white" />
+                    Donate Now <Heart className="w-4 h-4 fill-white" />
                   </button>
                   <button
                     onClick={() => setShowShare(true)}
-                    className="w-full py-5 rounded-2xl bg-uiu-orange text-white font-black text-lg shadow-xl shadow-orange-200 hover:bg-orange-600 hover:-translate-y-1 transition-all flex items-center justify-center gap-3"
+                    className="w-full py-3 rounded-xl bg-uiu-orange text-white font-black text-sm shadow-lg shadow-orange-200 hover:bg-orange-600 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
                   >
-                    Share Campaign <Share2 className="w-6 h-6" />
+                    Share Campaign <Share2 className="w-4 h-4" />
                   </button>
                   <Link
                     href={`/chat?receiver=${encodeURIComponent("EcoNexus Admin")}&receiverId=ECO_ADMIN&receiverEmail=admin@econexus.com&item=${encodeURIComponent(campaign.title)}`}
-                    className="w-full py-5 rounded-2xl bg-slate-100 text-slate-500 font-black text-lg border border-slate-200 hover:bg-slate-200 hover:-translate-y-1 transition-all flex items-center justify-center gap-3"
+                    className="w-full py-3 rounded-xl bg-slate-100 text-slate-500 font-black text-sm border border-slate-200 hover:bg-slate-200 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
                   >
-                    Chat with Organizer <MessageCircle className="w-6 h-6" />
+                    Chat with Organizer <MessageCircle className="w-4 h-4" />
                   </Link>
                 </div>
               </motion.div>
 
               {/* REACTIONS CARD */}
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-xl">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 text-center">React to this campaign</p>
+                className="bg-white rounded-2xl border border-slate-100 p-3 shadow-xl">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center">React to this campaign</p>
                 <div className="flex items-center justify-around">
                   {[
                     { type: "LIKE", emoji: "👍", label: "Like", countKey: "likeCount", color: "hover:bg-blue-50 text-blue-500" },
@@ -572,10 +617,10 @@ function CampaignDetailsContent() {
                       <button
                         key={reaction.type}
                         onClick={() => handleReact(reaction.type)}
-                        className={`flex flex-col items-center gap-2 p-3 rounded-2xl transition-all ${reaction.color} ${isActive ? "bg-slate-50 scale-110 ring-2 ring-current shadow-md" : "hover:scale-110"}`}
+                        className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${reaction.color} ${isActive ? "bg-slate-50 scale-110 ring-2 ring-current shadow-md" : "hover:scale-110"}`}
                       >
-                        <span className="text-3xl">{reaction.emoji}</span>
-                        <span className="text-[10px] font-black uppercase tracking-tighter">{count} {reaction.label}</span>
+                        <span className="text-xl">{reaction.emoji}</span>
+                        <span className="text-[9px] font-black uppercase tracking-tighter">{count} {reaction.label}</span>
                       </button>
                     );
                   })}
@@ -584,26 +629,26 @@ function CampaignDetailsContent() {
 
               {/* STATS CARD */}
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-                className="bg-white rounded-[1.5rem] p-6 border border-slate-100 shadow-sm flex items-center justify-between">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Campaign Views</p>
-                <p className="text-xl font-black text-slate-900 flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-orange-500" /> {campaign.viewCount || 0}
+                className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex items-center justify-between">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Campaign Views</p>
+                <p className="text-base font-black text-slate-900 flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-orange-500" /> {campaign.viewCount || 0}
                 </p>
               </motion.div>
 
               {/* TRUST BADGE */}
-              <div className="flex items-center justify-center gap-6 p-8 bg-white/40 backdrop-blur-md rounded-[2.5rem] border border-white">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-50 text-uiu-emerald flex items-center justify-center">
-                    <Zap className="w-5 h-5 fill-uiu-emerald" />
+              <div className="flex items-center justify-center gap-4 p-3 bg-white/40 backdrop-blur-md rounded-xl border border-white">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-emerald-50 text-uiu-emerald flex items-center justify-center">
+                    <Zap className="w-3.5 h-3.5 fill-uiu-emerald" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">Verified</p>
-                    <p className="text-xs font-black text-slate-800 tracking-tight">EcoKnot Impact</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-tight">Verified</p>
+                    <p className="text-[10px] font-black text-slate-800 tracking-tight">EcoKnot Impact</p>
                   </div>
                 </div>
-                <div className="w-px h-8 bg-slate-200" />
-                <p className="text-[10px] font-bold text-slate-500 leading-tight">100% Secure & Transparent<br />in every contribution.</p>
+                <div className="w-px h-6 bg-slate-200" />
+                <p className="text-[9px] font-bold text-slate-500 leading-tight">100% Secure & Transparent<br />in every contribution.</p>
               </div>
             </div>
           </div>

@@ -4,14 +4,15 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 import {
-    ArrowLeft, User, ShieldCheck, Tag, Clock, Package,
+    ArrowLeft, User, MapPin, Phone, Clock, Droplets,
     FileText, AlertCircle, CheckCircle2, MessageCircle,
-    Send, MessageSquare, Reply, Trash2, TrendingUp, HandHeart, Info
+    Send, MessageSquare, Reply, Trash2, TrendingUp, Heart
 } from "lucide-react";
 import Link from "next/link";
 import UserAvatar from "@/components/UserAvatar";
+import { getCurrentUser } from "@/utils/userUtils";
 
-const API = "http://localhost:8080/api/need-resource";
+const API = "http://localhost:8080/api/blood-donation";
 const COMMENTS_API = "http://localhost:8080/api/comments";
 
 function formatDateTime(dt) {
@@ -28,7 +29,7 @@ function formatDateTime(dt) {
     } catch { return dt; }
 }
 
-function NeedResourceDetailsContent() {
+function BloodDonationDetailsContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const itemId = searchParams.get("id");
@@ -46,19 +47,15 @@ function NeedResourceDetailsContent() {
     const smoothY = useSpring(mouseY, { damping: 50, stiffness: 400, mass: 0.5 });
 
     useEffect(() => {
-        const userStr = localStorage.getItem("user");
-        if (userStr) {
-            setUser(JSON.parse(userStr));
-        }
+        const u = getCurrentUser();
+        if (u) setUser(u);
     }, []);
 
     useEffect(() => {
         setIsMounted(true);
         if (!itemId) return;
 
-        // Read user once inside effect — NOT in dependency array
-        const userStr = localStorage.getItem("user");
-        const currentUser = userStr ? JSON.parse(userStr) : null;
+        const currentUser = getCurrentUser();
 
         const fetchItem = async () => {
             try {
@@ -67,18 +64,16 @@ function NeedResourceDetailsContent() {
                     const data = await res.json();
                     setItem(data);
 
-                    // ── View tracking: 1 view per browser SESSION per post ──
-                    // Using sessionStorage (not localStorage) so:
-                    //   • Same user refreshing → no extra count ✅
-                    //   • Different user on same browser, different session → 1 count each ✅
-                    //   • Two users in same browser tab-session → only 1 count total ✅
-                    const type = "NEED_RESOURCE";
-                    const viewSessionKey = `viewed_${type}_${itemId}`; // no email — session-scoped
-                    if (!sessionStorage.getItem(viewSessionKey)) {
-                        sessionStorage.setItem(viewSessionKey, "true");
+                    const type = "BLOOD_DONATION";
+                    const viewKey = currentUser
+                        ? `viewed_${type}_${itemId}_${currentUser.email}`
+                        : `viewed_${type}_${itemId}_guest`;
+
+                    if (!localStorage.getItem(viewKey)) {
                         fetch(`http://localhost:8080/api/resources/view/${type}/${itemId}`, { method: 'PUT' })
                             .then(async (vRes) => {
                                 if (vRes.ok) {
+                                    localStorage.setItem(viewKey, "true");
                                     const updatedData = await vRes.json();
                                     setItem(prev => ({ ...prev, viewCount: updatedData.viewCount }));
                                 }
@@ -98,7 +93,7 @@ function NeedResourceDetailsContent() {
 
         async function fetchComments() {
             try {
-                const res = await fetch(`${COMMENTS_API}/NEED_RESOURCE/${itemId}`);
+                const res = await fetch(`${COMMENTS_API}/BLOOD_DONATION/${itemId}`);
                 if (res.ok) {
                     const data = await res.json();
                     setComments(data);
@@ -106,10 +101,9 @@ function NeedResourceDetailsContent() {
             } catch (err) { console.error("Error fetching comments:", err); }
         }
 
-        // ── Per-user reaction status from backend ──────────────────────────
         async function fetchUserReaction(email) {
             try {
-                const res = await fetch(`http://localhost:8080/api/resources/react/status/NEED_RESOURCE/${itemId}/${encodeURIComponent(email)}`);
+                const res = await fetch(`http://localhost:8080/api/resources/react/status/BLOOD_DONATION/${itemId}/${email}`);
                 if (res.ok) {
                     const text = await res.text();
                     if (text) {
@@ -122,10 +116,11 @@ function NeedResourceDetailsContent() {
             } catch (err) { console.error("Error fetching reaction status:", err); }
         }
 
-        fetchComments();
-        if (currentUser?.email) fetchUserReaction(currentUser.email);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [itemId]); // Only re-run when itemId changes — user is read from localStorage inside
+        if (itemId) {
+            fetchComments();
+            if (currentUser) fetchUserReaction(currentUser.email);
+        }
+    }, [itemId, user]);
 
     const handlePostComment = async (e) => {
         e.preventDefault();
@@ -137,7 +132,7 @@ function NeedResourceDetailsContent() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     resourceId: itemId,
-                    resourceType: "NEED_RESOURCE",
+                    resourceType: "BLOOD_DONATION",
                     userName: user.fullName || "User",
                     userEmail: user.email,
                     content: newComment
@@ -156,7 +151,7 @@ function NeedResourceDetailsContent() {
         if (!user || !itemId) return;
 
         try {
-            const res = await fetch(`http://localhost:8080/api/resources/react/NEED_RESOURCE/${itemId}/${reactionType}/${user.email}`, {
+            const res = await fetch(`http://localhost:8080/api/resources/react/BLOOD_DONATION/${itemId}/${reactionType}/${user.email}`, {
                 method: "PUT"
             });
 
@@ -179,24 +174,24 @@ function NeedResourceDetailsContent() {
     }, [mouseX, mouseY]);
 
     return (
-        <div className="flex min-h-screen font-sans bg-gradient-to-b from-[#f0f9ff] via-[#fbf8f3] to-[#fff3ec] relative overflow-hidden">
+        <div className="flex min-h-screen font-sans bg-gradient-to-b from-[#fff0f2] via-[#fbf8f3] to-[#fff3ec] relative overflow-hidden">
             {/* BACKGROUND EFFECTS */}
             <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
                 {isMounted && (
                     <motion.div
                         style={{ x: smoothX, y: smoothY }}
-                        className="absolute top-[-15vw] left-[-15vw] w-[30vw] h-[30vw] rounded-full bg-blue-400/15 blur-[120px] pointer-events-none z-10"
+                        className="absolute top-[-15vw] left-[-15vw] w-[30vw] h-[30vw] rounded-full bg-red-400/15 blur-[120px] pointer-events-none z-10"
                     />
                 )}
                 <motion.div
                     animate={{ x: ['0vw', '30vw', '-20vw', '0vw'], y: ['0vh', '-20vh', '30vh', '0vh'], scale: [1, 1.3, 0.9, 1] }}
                     transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-                    className="absolute top-[10%] left-[20%] w-[45vw] h-[45vw] rounded-[100%] bg-indigo-400/15 blur-[130px]"
+                    className="absolute top-[10%] left-[20%] w-[45vw] h-[45vw] rounded-[100%] bg-rose-400/15 blur-[130px]"
                 />
                 <motion.div
                     animate={{ x: ['0vw', '-40vw', '10vw', '0vw'], y: ['0vh', '40vh', '-10vh', '0vh'], scale: [1, 0.8, 1.2, 1] }}
                     transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
-                    className="absolute top-[30%] right-[10%] w-[50vw] h-[50vw] rounded-[100%] bg-cyan-400/10 blur-[140px]"
+                    className="absolute top-[30%] right-[10%] w-[50vw] h-[50vw] rounded-[100%] bg-red-500/10 blur-[140px]"
                 />
                 <div className="absolute inset-0 backdrop-blur-[60px] z-[-1]" />
                 <motion.div
@@ -220,15 +215,15 @@ function NeedResourceDetailsContent() {
 
                 {!item && isMounted && (
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center py-20 text-center gap-4">
-                        <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center">
-                            <AlertCircle className="w-8 h-8 text-blue-400" />
+                        <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center">
+                            <AlertCircle className="w-8 h-8 text-red-500" />
                         </div>
                         <div>
                             <h2 className="text-2xl font-black text-slate-800 mb-1">Request Not Found</h2>
                             <p className="text-slate-400 font-medium text-sm">This request may have been fulfilled or removed.</p>
                         </div>
-                        <Link href="/need-resource" className="px-6 py-3 rounded-xl bg-blue-500 text-white font-black shadow-md hover:bg-blue-600 transition-all text-sm">
-                            Browse Requests
+                        <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-red-500 text-white font-black shadow-md hover:bg-red-600 transition-all text-sm">
+                            Back to Dashboard
                         </Link>
                     </motion.div>
                 )}
@@ -242,40 +237,58 @@ function NeedResourceDetailsContent() {
                             <motion.div
                                 initial={{ opacity: 0, x: -24 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                className={`bg-white/60 backdrop-blur-xl border border-white/80 rounded-[1.2rem] p-4 shadow-sm space-y-4 ${item.urgencyLevel === "Urgent" ? 'ring-2 ring-red-400/50' : ''}`}
+                                className={`bg-white/60 backdrop-blur-xl border border-white/80 rounded-[1.2rem] p-4 shadow-sm space-y-4 ${item.urgent ? 'ring-2 ring-red-400/50' : ''}`}
                             >
                                 <div className="space-y-3">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-100 font-bold text-[10px] uppercase tracking-wider">
-                                            <HandHeart className="w-3 h-3" /> Needed Resource
+                                        <span className={`px-3 py-1 rounded-full text-white font-black text-[10px] shadow-sm ${
+                                          item.bloodGroup === "O+" || item.bloodGroup === "O-" ? "bg-orange-500" :
+                                          item.bloodGroup?.startsWith("A") ? "bg-red-500" :
+                                          item.bloodGroup?.startsWith("B") ? "bg-blue-500" : "bg-purple-500"
+                                        }`}>
+                                            {item.bloodGroup} Blood Needed
                                         </span>
-                                        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-bold text-[10px] uppercase tracking-wider">
-                                            {item.category}
-                                        </span>
-                                        {item.urgencyLevel === "Urgent" && (
+                                        {item.urgent && (
                                             <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-rose-500 text-white font-black text-[10px] uppercase tracking-wider shadow-sm animate-pulse shadow-rose-500/20">
-                                                <AlertCircle className="w-3 h-3" /> Urgent
-                                            </span>
-                                        )}
-                                        {item.urgencyLevel === "High" && (
-                                            <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-orange-500 text-white font-black text-[10px] uppercase tracking-wider shadow-sm shadow-orange-500/20">
-                                                <AlertCircle className="w-3 h-3" /> High Priority
+                                                <AlertCircle className="w-3 h-3" /> Urgent Needed
                                             </span>
                                         )}
                                     </div>
                                     <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-tight">
-                                        {item.requestTitle}
+                                        {item.patientName ? `Blood for ${item.patientName}` : `Blood Needed: ${item.bloodGroup}`}
                                     </h1>
                                 </div>
 
                                 <div className="p-3 bg-white/40 backdrop-blur-md rounded-[0.8rem] border border-white/60">
                                     <div className="flex items-center gap-1.5 mb-2">
                                         <FileText className="w-3.5 h-3.5 text-slate-400" />
-                                        <h3 className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Detailed Reason / Description</h3>
+                                        <h3 className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Contact & Details</h3>
                                     </div>
-                                    <p className="text-slate-600 font-medium leading-relaxed text-[13px] whitespace-pre-wrap">
-                                        {item.description}
-                                    </p>
+                                    
+                                    <div className="space-y-3">
+                                      <div className="flex items-center gap-3">
+                                          <div className="p-2 bg-rose-50 rounded-lg text-rose-500"><Phone className="w-4 h-4"/></div>
+                                          <div>
+                                              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Contact Phone</p>
+                                              <p className="font-bold text-slate-800 text-sm">{item.contactPhone || "Not provided"}</p>
+                                          </div>
+                                      </div>
+                                      <div className="flex items-center gap-3">
+                                          <div className="p-2 bg-slate-100 rounded-lg text-slate-500"><MapPin className="w-4 h-4"/></div>
+                                          <div>
+                                              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Location / Hospital</p>
+                                              <p className="font-bold text-slate-800 text-sm">{item.location || item.hospitalName || "Not provided"}</p>
+                                          </div>
+                                      </div>
+                                      
+                                      {item.details && (
+                                        <div className="mt-3 pt-3 border-t border-slate-200/50">
+                                            <p className="text-slate-600 font-medium leading-relaxed text-sm whitespace-pre-wrap">
+                                                {item.details}
+                                            </p>
+                                        </div>
+                                      )}
+                                    </div>
                                 </div>
                             </motion.div>
 
@@ -287,7 +300,7 @@ function NeedResourceDetailsContent() {
                                 className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-[1.2rem] p-4 shadow-sm space-y-4"
                             >
                                 <h3 className="text-base font-black text-slate-800 flex items-center gap-2">
-                                    <MessageSquare className="w-4 h-4 text-blue-500" /> Responses ({comments.length})
+                                    <MessageSquare className="w-4 h-4 text-red-500" /> Responses ({comments.length})
                                 </h3>
 
                                 <form onSubmit={handlePostComment} className="relative">
@@ -295,9 +308,9 @@ function NeedResourceDetailsContent() {
                                         value={newComment}
                                         onChange={(e) => setNewComment(e.target.value)}
                                         placeholder="Offer help or ask for clarification..."
-                                        className="w-full p-3 pr-10 bg-white/40 border border-white/60 rounded-xl font-bold text-slate-700 text-xs outline-none focus:ring-2 focus:ring-blue-400/10 focus:border-blue-400 transition-all resize-none min-h-[60px]"
+                                        className="w-full p-3 pr-10 bg-white/40 border border-white/60 rounded-xl font-bold text-slate-700 text-xs outline-none focus:ring-2 focus:ring-red-400/10 focus:border-red-400 transition-all resize-none min-h-[60px]"
                                     />
-                                    <button type="submit" className="absolute bottom-2 right-2 p-2 bg-blue-500 text-white rounded-lg shadow-md hover:scale-105 active:scale-95 transition-all">
+                                    <button type="submit" className="absolute bottom-2 right-2 p-2 bg-red-500 text-white rounded-lg shadow-md hover:scale-105 active:scale-95 transition-all">
                                         <Send className="w-4 h-4" />
                                     </button>
                                 </form>
@@ -305,7 +318,7 @@ function NeedResourceDetailsContent() {
                                 <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar pr-1">
                                     {comments.map((comm, i) => (
                                         <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} key={comm.id} className="flex gap-3 group">
-                                            <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shrink-0 border border-blue-100 shadow-sm overflow-hidden">
+                                            <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center text-red-500 shrink-0 border border-red-100 shadow-sm overflow-hidden">
                                                 <UserAvatar email={comm.userEmail} name={comm.userName} className="w-full h-full" iconClassName="w-4 h-4" />
                                             </div>
                                             <div className="flex-1 space-y-1">
@@ -320,7 +333,7 @@ function NeedResourceDetailsContent() {
                                                 <div className="flex items-center gap-3 pt-0.5">
                                                     <button
                                                         onClick={() => { setNewComment(`@${comm.userName} `); document.querySelector('textarea')?.focus(); }}
-                                                        className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-blue-500 transition-colors flex items-center gap-1"
+                                                        className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-red-500 transition-colors flex items-center gap-1"
                                                     ><Reply className="w-2.5 h-2.5" /> Reply</button>
                                                     {user && user.email === comm.userEmail && (
                                                         <button
@@ -357,7 +370,11 @@ function NeedResourceDetailsContent() {
                             <motion.div
                                 initial={{ opacity: 0, x: 24 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                className="rounded-[1.2rem] bg-gradient-to-br from-indigo-500 to-blue-600 p-4 shadow-xl w-full relative flex items-center justify-center overflow-hidden group min-h-[100px]"
+                                className={`rounded-[1.2rem] p-4 shadow-xl w-full relative flex items-center justify-center overflow-hidden group min-h-[100px] ${
+                                  item.bloodGroup === "O+" || item.bloodGroup === "O-" ? "bg-gradient-to-br from-orange-500 to-rose-500" :
+                                  item.bloodGroup?.startsWith("A") ? "bg-gradient-to-br from-red-500 to-rose-600" :
+                                  item.bloodGroup?.startsWith("B") ? "bg-gradient-to-br from-blue-500 to-indigo-600" : "bg-gradient-to-br from-purple-500 to-fuchsia-600"
+                                }`}
                             >
                                 <div className="absolute inset-0 opacity-20">
                                     {[...Array(3)].map((_, i) => (
@@ -367,9 +384,9 @@ function NeedResourceDetailsContent() {
                                 </div>
                                 <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 0.4, ease: "easeOut" }} className="relative z-10 flex flex-col items-center gap-3 text-center">
                                     <div className="p-4 bg-white/20 rounded-[1.2rem] backdrop-blur-md border border-white/30 shadow-md text-white">
-                                        <HandHeart className="w-10 h-10" />
+                                        <Droplets className="w-10 h-10" />
                                     </div>
-                                    <p className="font-black text-white/90 tracking-[0.15em] text-[10px] uppercase bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm shadow-sm">{item.category} Need</p>
+                                    <p className="font-black text-white/90 tracking-[0.15em] text-[10px] uppercase bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm shadow-sm">{item.bloodGroup} Needed</p>
                                 </motion.div>
                             </motion.div>
 
@@ -382,14 +399,14 @@ function NeedResourceDetailsContent() {
                             >
                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-3">Requested By</p>
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-100 border border-white shadow-inner text-blue-500 shrink-0 overflow-hidden">
-                                        <UserAvatar email={item.postedByEmail} name={item.postedBy} className="w-full h-full" iconClassName="w-5 h-5" />
+                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-red-100 to-rose-100 border border-white shadow-inner text-red-500 shrink-0 overflow-hidden">
+                                        <UserAvatar email={item.postedByEmail} name={item.requestedBy || item.patientName} className="w-full h-full" iconClassName="w-5 h-5" />
                                     </div>
                                     <div className="flex-1">
-                                        <h3 className="font-black text-slate-800 text-sm leading-tight">{item.postedBy}</h3>
+                                        <h3 className="font-black text-slate-800 text-sm leading-tight">{item.requestedBy || item.patientName}</h3>
                                         <div className="flex items-center gap-1 text-emerald-500 font-bold text-[10px] mt-0.5">
                                             <CheckCircle2 className="w-3.5 h-3.5" />
-                                            Active Student
+                                            Active Member
                                         </div>
                                     </div>
                                 </div>
@@ -397,39 +414,42 @@ function NeedResourceDetailsContent() {
                                 <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-slate-100/50">
                                     <div className="space-y-0.5">
                                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Posted On</p>
-                                        <p className="font-bold text-slate-700 text-xs">{formatDateTime(item.createdAt)}</p>
+                                        <p className="font-bold text-slate-700 text-xs">{formatDateTime(item.createdAt || item.postedDate)}</p>
                                     </div>
                                     <div className="space-y-0.5">
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Urgency</p>
-                                        <p className={`font-bold text-xs ${item.urgencyLevel === 'Urgent' ? 'text-red-500' : item.urgencyLevel === 'High' ? 'text-orange-500' : 'text-slate-700'}`}>{item.urgencyLevel}</p>
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Status</p>
+                                        <p className="font-bold text-red-500 text-xs">Waiting for Donor</p>
                                     </div>
                                 </div>
+
                                 <div className="space-y-2 mt-4">
                                     {user && user.email === item.postedByEmail ? (
                                         <button
                                             onClick={async () => {
-                                                if (confirm("Are you sure you want to withdraw your request?")) {
+                                                if (confirm("Are you sure you want to delete your request?")) {
                                                     try {
-                                                        const res = await fetch(`http://localhost:8080/api/need-resource/${item.id}`, { method: 'DELETE' });
-                                                        if (res.ok) router.push('/dashboard');
+                                                        const res = await fetch(`http://localhost:8080/api/blood-donation/${item.id}`, { method: 'DELETE' });
+                                                        if (res.ok) {
+                                                            router.push('/dashboard');
+                                                        }
                                                     } catch (err) { console.error('Error deleting:', err); }
                                                 }
                                             }}
                                             className="w-full py-2.5 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white border border-rose-100 font-black rounded-lg shadow-sm flex items-center justify-center gap-2 transition-all text-xs group"
                                         >
-                                            <Trash2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" /> Withdraw Request
+                                            <Trash2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" /> Delete Request
                                         </button>
                                     ) : (
-                                        <Link href={`/chat?receiver=${encodeURIComponent(item.postedBy)}&receiverId=${item.firebaseUid || ""}&receiverEmail=${item.postedByEmail || ""}&item=${encodeURIComponent("Regarding Request: " + item.requestTitle)}`} className="w-full py-2.5 bg-blue-600 text-white font-black rounded-lg shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 hover:bg-blue-700 transition-all text-xs group">
-                                            <MessageCircle className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" /> Contact & Offer Help
+                                        <Link href={`/chat?receiver=${encodeURIComponent(item.requestedBy)}&receiverEmail=${item.postedByEmail || ""}&item=${encodeURIComponent("Regarding Blood Request: " + item.bloodGroup)}`} className="w-full py-2.5 bg-red-600 text-white font-black rounded-lg shadow-md shadow-red-500/20 flex items-center justify-center gap-2 hover:bg-red-700 transition-all text-xs group">
+                                            <MessageCircle className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" /> Coordinate Privately
                                         </Link>
                                     )}
                                 </div>
                             </motion.div>
 
                             {/* Reactions */}
-                            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-[1.2rem] p-4 shadow-sm">
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-3 text-center">Give feedback</p>
+                            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-[1.5rem] p-6 shadow-sm">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 text-center">React to this request</p>
                                 <div className="flex items-center justify-around">
                                     {[
                                         { type: "LIKE", emoji: "👍", label: "Helpful", countKey: "likeCount", color: "hover:bg-blue-50 text-blue-500" },
@@ -454,8 +474,8 @@ function NeedResourceDetailsContent() {
                             </motion.div>
 
                             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-[1.2rem] p-4 shadow-sm flex items-center justify-between">
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1"><Info className="w-3 h-3" /> Views</p>
-                                <p className="text-lg font-black text-slate-900 flex items-center gap-2"><TrendingUp className="w-3.5 h-3.5 text-blue-500" /> {item.viewCount}</p>
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1"><Heart className="w-3 h-3" /> Views</p>
+                                <p className="text-lg font-black text-slate-900 flex items-center gap-2"><TrendingUp className="w-3.5 h-3.5 text-red-500" /> {item.viewCount || 0}</p>
                             </motion.div>
 
                         </div>
@@ -466,14 +486,14 @@ function NeedResourceDetailsContent() {
     );
 }
 
-export default function NeedResourceDetailsPage() {
+export default function BloodDonationDetailsPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f0f9ff] to-[#fff3ec]">
-                <div className="w-8 h-8 rounded-full border-4 border-blue-400 border-t-transparent animate-spin" />
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#fff0f2] to-[#fff3ec]">
+                <div className="w-8 h-8 rounded-full border-4 border-red-500 border-t-transparent animate-spin" />
             </div>
         }>
-            <NeedResourceDetailsContent />
+            <BloodDonationDetailsContent />
         </Suspense>
     );
 }

@@ -417,13 +417,13 @@ function DashboardContent() {
       </div>
 
       {/* SIDEBAR (DESKTOP) */}
-      <aside className="hidden md:flex flex-col w-72 h-screen sticky top-0 bg-white/40 backdrop-blur-2xl border-r border-white/60 p-6 z-20 shadow-[10px_0_40px_-15px_rgba(0,0,0,0.05)]">
-        <div className="mb-12 mt-2 px-4">
-          <h1 className="text-3xl font-black bg-gradient-to-r from-uiu-orange via-rose-500 to-uiu-emerald bg-clip-text text-transparent tracking-tight">EcoKnot</h1>
-          <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Dashboard Hub</p>
+      <aside className="hidden md:flex flex-col w-64 h-screen sticky top-0 bg-white/40 backdrop-blur-2xl border-r border-white/60 p-5 z-20 shadow-[10px_0_40px_-15px_rgba(0,0,0,0.05)]">
+        <div className="mb-8 mt-2 px-4">
+          <h1 className="text-2xl font-black bg-gradient-to-r from-uiu-orange via-rose-500 to-uiu-emerald bg-clip-text text-transparent tracking-tight">EcoKnot</h1>
+          <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Dashboard Hub</p>
         </div>
 
-        <nav className="flex-1 flex flex-col gap-2">
+        <nav className="flex-1 flex flex-col gap-1">
           {navLinks.map((link) => {
             const Icon = link.icon;
             
@@ -432,20 +432,20 @@ function DashboardContent() {
                 <div key={link.name} className="relative">
                   <button
                     onClick={link.action}
-                    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl font-bold transition-all group ${link.active
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all group ${link.active
                       ? "bg-white text-slate-900 shadow-[0_10px_20px_-10px_rgba(0,0,0,0.08)] border border-slate-100"
                       : "text-slate-500 hover:bg-white/50 hover:text-slate-800"
                       }`}
                   >
-                    <div className={`p-2 rounded-xl transition-colors relative ${link.active ? 'bg-emerald-50 text-uiu-emerald' : 'bg-transparent text-slate-400 group-hover:bg-white'}`}>
-                      <Icon className="w-5 h-5" />
+                    <div className={`p-1.5 rounded-lg transition-colors relative ${link.active ? 'bg-emerald-50 text-uiu-emerald' : 'bg-transparent text-slate-400 group-hover:bg-white'}`}>
+                      <Icon className="w-4 h-4" />
                       {link.badge && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full border-2 border-white flex items-center justify-center text-[8px] text-white">
+                        <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-white flex items-center justify-center text-[7px] text-white">
                           {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
                         </div>
                       )}
                     </div>
-                    {link.name}
+                    <span className="text-sm">{link.name}</span>
                   </button>
 
                   {link.dropdown && showNotificationDropdown && (
@@ -496,53 +496,53 @@ function DashboardContent() {
               <Link
                 key={link.name}
                 href={link.href || "#"}
-                className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl font-bold transition-all group ${link.active
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all group ${link.active
                   ? "bg-white text-slate-900 shadow-[0_10px_20px_-10px_rgba(0,0,0,0.08)] border border-slate-100"
                   : "text-slate-500 hover:bg-white/50 hover:text-slate-800"
                   }`}
               >
-                <div className={`p-2 rounded-xl transition-colors relative ${link.active ? 'bg-emerald-50 text-uiu-emerald' : 'bg-transparent text-slate-400 group-hover:bg-white'}`}>
-                  <Icon className="w-5 h-5" />
+                <div className={`p-1.5 rounded-lg transition-colors relative ${link.active ? 'bg-emerald-50 text-uiu-emerald' : 'bg-transparent text-slate-400 group-hover:bg-white'}`}>
+                  <Icon className="w-4 h-4" />
                   {link.badge && (
-                    <div className="absolute top-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white animate-pulse" />
+                    <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white animate-pulse" />
                   )}
                 </div>
-                {link.name}
+                <span className="text-sm">{link.name}</span>
               </Link>
             );
           })}
         </nav>
 
         <div className="mt-auto">
-          <Link href="/" className="flex items-center gap-4 px-4 py-4 rounded-2xl text-slate-500 font-bold hover:bg-white hover:text-rose-600 transition-all hover:shadow-[0_10px_20px_-10px_rgba(225,29,72,0.1)] group">
-            <div className="p-2 rounded-xl bg-transparent text-slate-400 group-hover:bg-rose-50 transition-colors">
-              <LogOut className="w-5 h-5 group-hover:text-rose-500 transition-colors" />
+          <Link href="/" className="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-500 font-bold hover:bg-white hover:text-rose-600 transition-all hover:shadow-[0_10px_20px_-10px_rgba(225,29,72,0.1)] group">
+            <div className="p-1.5 rounded-lg bg-transparent text-slate-400 group-hover:bg-rose-50 transition-colors">
+              <LogOut className="w-4 h-4 group-hover:text-rose-500 transition-colors" />
             </div>
-            Log Out
+            <span className="text-sm">Log Out</span>
           </Link>
         </div>
       </aside>
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 w-full flex flex-col h-screen overflow-y-auto z-10 custom-scrollbar">
-        <div className="max-w-6xl mx-auto w-full p-6 md:p-10 pb-32 md:pb-10 h-full">
+        <div className="max-w-6xl mx-auto w-full p-6 md:p-8 pb-32 md:pb-8 h-full">
 
           {/* HEADER */}
-          <header className="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center mb-12">
+          <header className="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center mb-8">
             <div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Welcome to the Hub! 🌿</h2>
-              <p className="text-slate-500 font-medium mt-1 text-lg">Browse resources and join active campaigns.</p>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Welcome to the Hub! 🌿</h2>
+              <p className="text-slate-500 font-medium mt-1 text-base">Browse resources and join active campaigns.</p>
             </div>
 
             <div className="flex items-center gap-4 w-full lg:w-auto">
-              <div className="relative flex-1 lg:w-80 group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-uiu-emerald transition-colors" />
+              <div className="relative flex-1 lg:w-72 group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-uiu-emerald transition-colors" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search resources..."
-                  className="w-full pl-12 pr-4 py-3.5 rounded-full bg-white/60 backdrop-blur-md border border-white focus:border-uiu-emerald focus:ring-4 focus:ring-uiu-emerald/10 outline-none transition-all placeholder:text-slate-400 text-slate-800 font-bold shadow-sm"
+                  className="w-full pl-11 pr-4 py-2.5 rounded-full bg-white/60 backdrop-blur-md border border-white focus:border-uiu-emerald focus:ring-4 focus:ring-uiu-emerald/10 outline-none transition-all placeholder:text-slate-400 text-slate-800 font-bold shadow-sm text-sm"
                 />
               </div>
               <motion.div
@@ -591,23 +591,23 @@ function DashboardContent() {
           </div> */}
 
           {/* ── BLOOD DONATION SECTION ──────────────────────────────────────── */}
-          <div className="mb-16">
-            <div className="flex justify-between items-end mb-8">
+          <div className="mb-6">
+            <div className="flex justify-between items-end mb-6">
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 bg-red-50 rounded-xl border border-red-100">
-                    <Droplets className="w-4 h-4 text-red-500" />
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="p-1.5 bg-red-50 rounded-lg border border-red-100">
+                    <Droplets className="w-3.5 h-3.5 text-red-500" />
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Blood Donation</h3>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Blood Donation</h3>
                 </div>
-                <p className="text-slate-500 font-medium">Recent urgent blood requests from the community.</p>
+                <p className="text-slate-500 font-medium text-sm">Recent urgent blood requests from the community.</p>
               </div>
-              <Link href="/blood-donation" className="text-red-500 font-black text-xs hover:underline flex items-center gap-1 mb-1">
-                View All <ArrowUpRight className="w-3.5 h-3.5" />
+              <Link href="/blood-donation" className="text-red-500 font-black text-[10px] hover:underline flex items-center gap-1 mb-1 uppercase tracking-wider">
+                View All <ArrowUpRight className="w-3 h-3" />
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5" style={{gridAutoRows: '220px'}}>
               {bloodDonations.length > 0 ? bloodDonations.map((item, i) => (
                 <motion.div
                   key={`blood-${item.id}`}
@@ -616,30 +616,31 @@ function DashboardContent() {
                   transition={{ delay: i * 0.08 }}
                 >
                   <motion.div whileHover={{ y: -6 }}
-                    className="group bg-white/60 backdrop-blur-xl rounded-[2rem] border border-white/80 shadow-sm overflow-hidden hover:shadow-xl transition-all flex flex-col h-full">
-                    <div className={`h-28 relative flex items-center justify-center overflow-hidden ${item.urgent ? "bg-gradient-to-br from-red-500 to-rose-600" : "bg-gradient-to-br from-rose-100 to-red-50"
+                    className="group bg-white/60 backdrop-blur-xl rounded-[1.5rem] border border-white/80 shadow-sm overflow-hidden hover:shadow-xl transition-all flex flex-col h-full">
+                    <div className={`h-20 shrink-0 relative flex items-center justify-center overflow-hidden ${item.urgent ? "bg-gradient-to-br from-red-500 to-rose-600" : "bg-gradient-to-br from-rose-100 to-red-50"
                       }`}>
-                      <span className={`text-5xl font-black tracking-tighter select-none ${item.urgent ? "text-white/80" : "text-red-400/30"
+                      <span className={`text-4xl font-black tracking-tighter select-none ${item.urgent ? "text-white/80" : "text-red-400/30"
                         }`}>{item.bloodGroup}</span>
-                      <div className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-white text-xs font-black shadow-sm ${item.bloodGroup === "O+" || item.bloodGroup === "O-" ? "bg-orange-500" :
+                      <div className={`absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-white text-[10px] font-black shadow-sm ${item.bloodGroup === "O+" || item.bloodGroup === "O-" ? "bg-orange-500" :
                           item.bloodGroup?.startsWith("A") ? "bg-red-500" :
                             item.bloodGroup?.startsWith("B") ? "bg-blue-500" : "bg-purple-500"
                         }`}>{item.bloodGroup}</div>
                       {item.urgent && (
-                        <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 text-white text-[9px] font-black">
-                          <Flame className="w-2.5 h-2.5" /> Urgent
+                        <div className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 text-white text-[8px] font-black">
+                          <Flame className="w-2 h-2" /> Urgent
                         </div>
                       )}
                     </div>
-                    <div className="p-4 flex-1 flex flex-col bg-white/80">
-                      <h4 className="text-base font-black text-slate-900 mb-2 line-clamp-1">{item.hospitalName}</h4>
-                      <div className="space-y-1 text-[11px] font-bold text-slate-500 mb-3">
-                        <div className="flex items-center gap-1"><MapPin className="w-3 h-3 text-rose-400" />{item.location}</div>
-                        <div className="flex items-center gap-1"><Phone className="w-3 h-3 text-green-500" />{item.contactNumber}</div>
+                    <div className="p-3.5 flex-1 flex flex-col bg-white/80 overflow-hidden">
+                      <div className="text-[8px] font-black text-red-500 uppercase tracking-widest mb-1">Blood Request</div>
+                      <h4 className="text-sm font-black text-slate-900 mb-1 line-clamp-1">{item.hospitalName}</h4>
+                      <div className="space-y-0.5 text-[10px] font-bold text-slate-500 mb-2">
+                        <div className="flex items-center gap-1"><MapPin className="w-2.5 h-2.5 text-rose-400" />{item.location}</div>
+                        <div className="flex items-center gap-1"><Phone className="w-2.5 h-2.5 text-green-500" />{item.num || item.contactNumber}</div>
                       </div>
                       <Link href={`/blood-donation-details?id=${item.id}`}
-                        className="mt-auto w-full py-2.5 rounded-xl font-black text-white text-xs bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 shadow-md transition-all flex items-center justify-center gap-1.5">
-                        View Request <ArrowUpRight className="w-3.5 h-3.5" />
+                        className="mt-auto w-full py-2 rounded-lg font-black text-white text-[10px] bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 shadow-md transition-all flex items-center justify-center gap-1.5">
+                        View Request <ArrowUpRight className="w-3 h-3" />
                       </Link>
                     </div>
                   </motion.div>
@@ -655,36 +656,36 @@ function DashboardContent() {
           </div>
 
           {/* ── NEED RESOURCE SECTION ──────────────────────────────────────── */}
-          <div className="mb-16">
-            <div className="flex justify-between items-end mb-8">
+          <div className="mb-6">
+            <div className="flex justify-between items-end mb-6">
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 bg-blue-50 rounded-xl border border-blue-100">
-                    <PackageSearch className="w-4 h-4 text-blue-500" />
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="p-1.5 bg-blue-50 rounded-lg border border-blue-100">
+                    <PackageSearch className="w-3.5 h-3.5 text-blue-500" />
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Need Resource</h3>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Need Resource</h3>
                 </div>
-                <p className="text-slate-500 font-medium">Community requests for academic or public items.</p>
+                <p className="text-slate-500 font-medium text-sm">Community requests for academic or public items.</p>
               </div>
-              <Link href="/need-resource" className="text-blue-500 font-black text-xs hover:underline flex items-center gap-1 mb-1">
-                View All <ArrowUpRight className="w-3.5 h-3.5" />
+              <Link href="/need-resource" className="text-blue-500 font-black text-[10px] hover:underline flex items-center gap-1 mb-1 uppercase tracking-wider">
+                View All <ArrowUpRight className="w-3 h-3" />
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5" style={{gridAutoRows: '220px'}}>
               {needResources.length > 0 ? needResources.map((item, i) => (
                 <motion.div key={`need-${item.id}`} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.08 }}>
-                  <motion.div whileHover={{ y: -6 }} className="group bg-white/60 backdrop-blur-xl rounded-[2rem] border border-white/80 shadow-sm overflow-hidden flex flex-col h-full hover:shadow-xl transition-all">
-                    <div className="p-5 border-b border-slate-100/50 flex flex-col gap-2">
-                       <span className={`w-max px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${item.category === "Academic" ? "bg-indigo-100 text-indigo-700" : "bg-teal-100 text-teal-700"}`}>
+                  <motion.div whileHover={{ y: -6 }} className="group bg-white/60 backdrop-blur-xl rounded-[1.5rem] border border-white/80 shadow-sm overflow-hidden flex flex-col h-full hover:shadow-xl transition-all">
+                    <div className="p-4 border-b border-slate-100/50 flex flex-col gap-1.5 h-20 shrink-0 justify-center">
+                       <span className={`w-max px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${item.category === "Academic" ? "bg-indigo-100 text-indigo-700" : "bg-teal-100 text-teal-700"}`}>
                          {item.category}
                        </span>
-                       <h4 className="text-base font-black text-slate-900 line-clamp-2 leading-tight">{item.requestTitle}</h4>
+                       <h4 className="text-sm font-black text-slate-900 line-clamp-2 leading-tight">{item.requestTitle}</h4>
                     </div>
-                    <div className="p-5 flex-1 flex flex-col bg-white/80">
-                      <p className="text-slate-500 font-medium text-xs line-clamp-3 mb-4 italic">"{item.description}"</p>
-                      <Link href={`/need-resource-details?id=${item.id}`} className="mt-auto w-full py-2.5 rounded-xl font-black text-white text-xs bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 shadow-md transition-all flex items-center justify-center gap-1.5 focus:ring-2 focus:ring-blue-500/20">
-                         View Details <ArrowUpRight className="w-3.5 h-3.5" />
+                    <div className="p-4 flex-1 flex flex-col bg-white/80 overflow-hidden">
+                      <p className="text-slate-500 font-medium text-[11px] line-clamp-3 mb-3 italic">"{item.description}"</p>
+                      <Link href={`/need-resource-details?id=${item.id}`} className="mt-auto w-full py-2 rounded-lg font-black text-white text-[10px] bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 shadow-md transition-all flex items-center justify-center gap-1.5 focus:ring-2 focus:ring-blue-500/20">
+                         View Details <ArrowUpRight className="w-3 h-3" />
                       </Link>
                     </div>
                   </motion.div>
@@ -699,17 +700,17 @@ function DashboardContent() {
 
           {/* MARKETPLACE FEED */}
           <div>
-            <div className="flex justify-between items-end mb-8">
+            <div className="flex justify-between items-end mb-6">
               <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Academic Resources</h3>
-                <p className="text-slate-500 font-medium mt-1">Discover what your peers are sharing right now.</p>
+                <h3 className="text-xl font-black text-slate-900 tracking-tight">Academic Resources</h3>
+                <p className="text-slate-500 font-medium mt-1 text-sm">Discover what your peers are sharing right now.</p>
               </div>
-              <Link href="/academic-resources" className="text-uiu-orange font-black text-xs hover:underline flex items-center gap-1 mb-1">
-                View All <ArrowUpRight className="w-3.5 h-3.5" />
+              <Link href="/academic-resources" className="text-uiu-orange font-black text-[10px] hover:underline flex items-center gap-1 mb-1 uppercase tracking-wider">
+                View All <ArrowUpRight className="w-3 h-3" />
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5" style={{gridAutoRows: '220px'}}>
               {marketplaceItems.length > 0 ? marketplaceItems.map((item, i) => (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -719,24 +720,24 @@ function DashboardContent() {
                 >
                   <motion.div
                     whileHover={{ y: -8 }}
-                    className="group bg-white/60 backdrop-blur-xl rounded-[2rem] border border-white/80 shadow-sm overflow-hidden hover:shadow-xl transition-all flex flex-col h-full"
+                    className="group bg-white/60 backdrop-blur-xl rounded-[1.5rem] border border-white/80 shadow-sm overflow-hidden hover:shadow-xl transition-all flex flex-col h-full"
                   >
-                    <div className={`h-48 relative overflow-hidden flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100`}>
-                      <div className="relative z-10">{item.icon}</div>
-                      <div className="absolute top-4 left-4 z-20">
-                        <span className="px-3 py-1 text-[11px] font-black rounded-full bg-white/80 backdrop-blur-md text-slate-700 shadow-sm uppercase tracking-wider">
-                          {item.condition}
+                    <div className={`h-20 shrink-0 relative overflow-hidden flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100`}>
+                      <div className="relative z-10 scale-90">{item.icon}</div>
+                      <div className="absolute top-3 left-3 z-20">
+                        <span className="px-2.5 py-0.5 text-[10px] font-black rounded-full bg-white/80 backdrop-blur-md text-slate-700 shadow-sm uppercase tracking-wider">
+                          {item.resourceCondition || item.condition}
                         </span>
                       </div>
                     </div>
-                    <div className="p-6 flex-1 flex flex-col bg-white/80 border-t border-white">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-uiu-orange mb-2">
-                        <Tag className="w-3.5 h-3.5" />
+                    <div className="p-4 flex-1 flex flex-col bg-white/80 border-t border-white overflow-hidden">
+                      <div className="flex items-center gap-1 text-[8px] font-black text-uiu-orange mb-1 uppercase tracking-widest">
+                        <Tag className="w-2.5 h-2.5" />
                         {item.subject}
                       </div>
-                      <h4 className="text-xl font-black text-slate-900 mb-6 leading-tight line-clamp-2">{item.title}</h4>
-                      <Link href={`/item-details?id=${item.id}`} className="mt-auto w-full py-3.5 rounded-xl font-black text-white text-sm bg-uiu-emerald hover:bg-emerald-600 shadow-md transition-all flex items-center justify-center gap-2">
-                        View Item <ArrowUpRight className="w-4 h-4" />
+                      <h4 className="text-sm font-black text-slate-900 mb-2 leading-tight line-clamp-2">{item.title}</h4>
+                      <Link href={`/item-details?id=${item.id}`} className="mt-auto w-full py-2 rounded-lg font-black text-white text-[10px] bg-uiu-emerald hover:bg-emerald-600 shadow-md transition-all flex items-center justify-center gap-1.5">
+                        View Item <ArrowUpRight className="w-3 h-3" />
                       </Link>
                     </div>
                   </motion.div>
@@ -750,18 +751,18 @@ function DashboardContent() {
           </div>
 
           {/* PUBLIC RESOURCES FEED SECTION */}
-          <div className="mt-16">
-            <div className="flex justify-between items-end mb-8">
+          <div className="mt-6">
+            <div className="flex justify-between items-end mb-6">
               <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Public Resources</h3>
-                <p className="text-slate-500 font-medium mt-1">Community shared items for free or exchange.</p>
+                <h3 className="text-xl font-black text-slate-900 tracking-tight">Public Resources</h3>
+                <p className="text-slate-500 font-medium mt-1 text-sm">Community shared items for free or exchange.</p>
               </div>
-              <Link href="/public-resources" className="text-uiu-emerald font-black text-xs hover:underline flex items-center gap-1 mb-1">
-                View All <ArrowUpRight className="w-3.5 h-3.5" />
+              <Link href="/public-resources" className="text-uiu-emerald font-black text-[10px] hover:underline flex items-center gap-1 mb-1 uppercase tracking-wider">
+                View All <ArrowUpRight className="w-3 h-3" />
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5" style={{gridAutoRows: '220px'}}>
               {publicResources.length > 0 ? publicResources.map((item, i) => (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -771,28 +772,28 @@ function DashboardContent() {
                 >
                   <motion.div
                     whileHover={{ y: -8 }}
-                    className="group bg-white/60 backdrop-blur-xl rounded-[2rem] border border-white/80 shadow-sm overflow-hidden hover:shadow-xl transition-all flex flex-col h-full"
+                    className="group bg-white/60 backdrop-blur-xl rounded-[1.5rem] border border-white/80 shadow-sm overflow-hidden hover:shadow-xl transition-all flex flex-col h-full"
                   >
-                    <div className="h-40 relative overflow-hidden bg-slate-100 flex items-center justify-center">
+                    <div className="h-20 shrink-0 relative overflow-hidden bg-slate-100 flex items-center justify-center">
                       {item.image ? (
                         <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
                       ) : (
-                        <Package className="w-10 h-10 text-slate-300" />
+                        <Package className="w-8 h-8 text-slate-300" />
                       )}
-                      <div className="absolute top-3 right-3">
-                        <button className="p-2 rounded-full bg-white/80 backdrop-blur-md text-uiu-orange shadow-sm hover:bg-uiu-orange hover:text-white transition-all">
-                          <MessageCircle className="w-4 h-4" />
+                      <div className="absolute top-2.5 right-2.5">
+                        <button className="p-1.5 rounded-full bg-white/80 backdrop-blur-md text-uiu-orange shadow-sm hover:bg-uiu-orange hover:text-white transition-all">
+                          <MessageCircle className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
-                    <div className="p-5 flex-1 flex flex-col bg-white/80">
-                      <div className="text-[10px] font-black text-uiu-emerald uppercase tracking-widest mb-1">{item.category || "Community"}</div>
-                      <h4 className="text-lg font-black text-slate-800 mb-4 line-clamp-1">{item.title}</h4>
+                    <div className="p-4 flex-1 flex flex-col bg-white/80 overflow-hidden">
+                      <div className="text-[8px] font-black text-uiu-emerald uppercase tracking-widest mb-1">{item.category || "Community"}</div>
+                      <h4 className="text-sm font-black text-slate-800 mb-2 line-clamp-1">{item.title}</h4>
                       <Link
                         href={`/resource-details?id=${item.id}&type=public`}
-                        className="mt-auto w-full py-3 rounded-xl font-black text-white text-xs bg-uiu-emerald hover:bg-emerald-600 shadow-md transition-all flex items-center justify-center gap-2"
+                        className="mt-auto w-full py-2 rounded-lg font-black text-white text-[10px] bg-uiu-emerald hover:bg-emerald-600 shadow-md transition-all flex items-center justify-center gap-1.5"
                       >
-                        View Item <ArrowUpRight className="w-3.5 h-3.5" />
+                        View Item <ArrowUpRight className="w-3 h-3" />
                       </Link>
                     </div>
                   </motion.div>
@@ -806,18 +807,18 @@ function DashboardContent() {
           </div>
 
           {/* ACTIVE CAMPAIGNS SECTION */}
-          <div className="mt-16">
-            <div className="flex justify-between items-end mb-8">
+          <div className="mt-6">
+            <div className="flex justify-between items-end mb-6">
               <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Active Campaigns</h3>
-                <p className="text-slate-500 font-medium mt-1">Join a movement and help the community.</p>
+                <h3 className="text-xl font-black text-slate-900 tracking-tight">Active Campaigns</h3>
+                <p className="text-slate-500 font-medium mt-1 text-sm">Join a movement and help the community.</p>
               </div>
-              <Link href="/public-campaigns" className="text-uiu-orange font-black text-xs hover:underline flex items-center gap-1 mb-1">
-                View All <ArrowUpRight className="w-3.5 h-3.5" />
+              <Link href="/public-campaigns" className="text-uiu-orange font-black text-[10px] hover:underline flex items-center gap-1 mb-1 uppercase tracking-wider">
+                View All <ArrowUpRight className="w-3 h-3" />
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5" style={{gridAutoRows: '260px'}}>
               {isLoadingCampaigns ? (
                 <div className="col-span-full py-16 flex flex-col items-center justify-center gap-4 bg-white/20 backdrop-blur-md rounded-[2.5rem] border border-white/40">
                   <div className="w-10 h-10 border-4 border-uiu-emerald border-t-transparent rounded-full animate-spin" />
@@ -836,58 +837,64 @@ function DashboardContent() {
                     animate={{ opacity: 1, scale: 1 }}
                     whileHover={{ y: -5 }}
                     transition={{ delay: i * 0.1 + 0.3 }}
-                    className="group bg-white/60 backdrop-blur-xl rounded-[2.5rem] border border-white/80 shadow-sm overflow-hidden hover:shadow-xl transition-all flex flex-col h-full"
+                    className="group bg-white/60 backdrop-blur-xl rounded-[1.5rem] border border-white/80 shadow-sm overflow-hidden hover:shadow-xl transition-all flex flex-col h-full"
                   >
                     {/* Campaign Image Header */}
-                    <div className="h-44 relative overflow-hidden">
+                    <div className="h-[90px] shrink-0 relative overflow-hidden">
                       <img
                         src={camp.image || `https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&q=80&w=800`}
                         alt={camp.title}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent opacity-60" />
-                      <div className="absolute top-4 left-4">
-                        <span className="px-3 py-1 rounded-full bg-uiu-emerald/90 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-lg">
-                          <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                          Live Community Project
+                      <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent opacity-50" />
+                      <div className="absolute top-2.5 left-2.5">
+                        <span className="px-2 py-0.5 rounded-full bg-uiu-emerald/90 backdrop-blur-md text-white text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-lg">
+                          <div className="w-1 h-1 rounded-full bg-white animate-pulse" />
+                          Live Project
+                        </span>
+                      </div>
+                      <div className="absolute top-2.5 right-2.5">
+                        <span className="px-2 py-0.5 rounded-full bg-slate-900/70 backdrop-blur-md text-white text-[8px] font-black flex items-center gap-1">
+                          <Clock className="w-2.5 h-2.5" />{camp.daysLeft || "14"}d Left
                         </span>
                       </div>
                     </div>
 
-                    <div className="p-8 flex flex-col flex-1">
-                      <div className="flex justify-between items-start mb-6">
-                        <div>
-                          <h3 className="text-2xl font-black text-slate-800 tracking-tight group-hover:text-uiu-emerald transition-colors leading-tight">{camp.title}</h3>
-                          <p className="text-slate-400 font-bold text-sm lowercase">{camp.category || "General Drive"}</p>
-                        </div>
-                        <div className="flex flex-col items-end">
-                          <div className="flex items-center gap-1.5 text-slate-400 font-bold text-xs bg-slate-50 px-3 py-1.5 rounded-full">
-                            <Clock className="w-3.5 h-3.5" />
-                            {camp.daysLeft || "14"} Days Left
-                          </div>
-                        </div>
+                    <div className="p-3 flex flex-col flex-1 overflow-hidden">
+                      <div className="mb-1.5">
+                        <h3 className="text-sm font-black text-slate-800 tracking-tight group-hover:text-uiu-emerald transition-colors leading-tight line-clamp-1">{camp.title}</h3>
+                        <p className="text-slate-400 font-bold text-[9px] lowercase mt-0.5">{camp.category || "General Drive"}</p>
                       </div>
 
-                      <p className="text-slate-500 font-medium text-sm mb-8 line-clamp-2 leading-relaxed">
+                      <p className="text-slate-500 font-medium text-[10px] line-clamp-2 leading-relaxed mb-2">
                         {camp.description}
                       </p>
 
-                      <div className="space-y-4 mb-8">
+                      <div className="space-y-1 mb-2.5">
                         <div className="flex justify-between items-end">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Campaign Goal</span>
-                          <span className="text-sm font-black text-slate-900">{camp.progress || 0}% Achieved</span>
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Goal</span>
+                          <span className="text-[10px] font-black text-slate-900">{camp.progress || 0}% Achieved</span>
                         </div>
-                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-100/50">
+                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-100/50">
                           <div className="h-full bg-gradient-to-r from-uiu-emerald to-teal-400 rounded-full transition-all duration-1000" style={{ width: `${camp.progress || 0}%` }} />
                         </div>
                       </div>
 
-                      <Link
-                        href={`/campaign-details?id=${camp.id}`}
-                        className="w-full py-4 rounded-2xl font-black text-white text-sm bg-slate-900 hover:bg-uiu-emerald shadow-lg shadow-slate-900/10 transition-all flex items-center justify-center gap-2 mt-auto"
-                      >
-                        Make a Contribution <ChevronRight className="w-4 h-4" />
-                      </Link>
+                      {/* TWO ACTION BUTTONS */}
+                      <div className="flex gap-1.5 mt-auto">
+                        <Link
+                          href={`/campaign-details?id=${camp.id}`}
+                          className="flex-1 py-2 rounded-xl font-black text-slate-600 text-[10px] bg-slate-100 hover:bg-slate-200 transition-all flex items-center justify-center gap-1 border border-slate-200 hover:border-slate-300"
+                        >
+                          View Details
+                        </Link>
+                        <Link
+                          href={`/campaign-details?id=${camp.id}`}
+                          className="flex-1 py-2 rounded-xl font-black text-white text-[10px] bg-gradient-to-r from-uiu-emerald to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-md shadow-emerald-200/50 transition-all flex items-center justify-center gap-1"
+                        >
+                          Join 🤝
+                        </Link>
+                      </div>
                     </div>
                   </motion.div>
                 ))

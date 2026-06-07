@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { db, serverTimestamp } from "@/utils/firebase";
+import { getCurrentUser } from "@/utils/userUtils";
 import {
   collection, addDoc, query, orderBy,
   onSnapshot, doc, getDocs, limit, where, setDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove
@@ -50,11 +51,8 @@ function ChatContent() {
   const reactionOptions = ["❤️", "😂", "😮", "😢", "🔥", "👍"];
 
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      const u = JSON.parse(userStr);
-      setCurrentUser(u);
-    }
+    const u = getCurrentUser();
+    if (u) setCurrentUser(u);
   }, []);
 
   const getRoomId = (uid1, uid2) => {
@@ -129,6 +127,17 @@ function ChatContent() {
     isResizing.current = false;
     document.removeEventListener("mousemove", handleMouseMove);
     document.removeEventListener("mouseup", stopResizing);
+  };
+
+  const contactAdmin = () => {
+    if (!currentUser) return;
+    const myId = currentUser.firebaseUid || currentUser.email;
+    const roomId = getRoomId(myId, "ECO_ADMIN");
+    setActiveChat({
+      id: roomId,
+      receiverName: "Ecoknot Admin",
+      receiverId: "ECO_ADMIN"
+    });
   };
 
   useEffect(() => {
@@ -303,13 +312,25 @@ function ChatContent() {
               <ArrowLeft className="w-5 h-5" /> {refSource === 'admin' ? 'Admin Panel' : 'Chat'}
             </Link>
             <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200 overflow-hidden shadow-sm">
-              {currentUser.image ? <img src={currentUser.image} className="w-full h-full object-cover" /> : <User className="w-6 h-6" />}
+              {currentUser.profileImageUrl || currentUser.image
+                ? <img src={currentUser.profileImageUrl || currentUser.image} className="w-full h-full object-cover" />
+                : <User className="w-6 h-6" />}
             </div>
           </div>
           <div className="relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-uiu-emerald transition-colors" />
             <input type="text" placeholder="Search conversations..." className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none" />
           </div>
+
+          {/* CONTACT ADMIN OPTION */}
+          {currentUser && currentUser.userType !== 'ADMIN' && (
+            <button 
+              onClick={contactAdmin}
+              className="w-full mt-4 p-3 bg-uiu-emerald/10 text-uiu-emerald rounded-2xl flex items-center justify-center gap-2 font-black text-xs hover:bg-uiu-emerald hover:text-white transition-all shadow-sm border border-uiu-emerald/20"
+            >
+              <ShieldCheck className="w-4 h-4" /> Message Support / Admin
+            </button>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto no-scrollbar">
           {conversations.map((conv) => {
@@ -347,7 +368,10 @@ function ChatContent() {
           <>
             <header className="p-6 md:p-8 border-b border-slate-100 flex items-center justify-between bg-white/90 backdrop-blur-md sticky top-0 z-10 shadow-sm">
               <div className="flex items-center gap-4">
-                <button onClick={() => setActiveChat(null)} className="md:hidden p-2 text-slate-400 hover:text-uiu-emerald transition-colors"><ChevronLeft className="w-7 h-7" /></button>
+                <button onClick={() => setActiveChat(null)} className="p-2.5 text-slate-400 hover:text-uiu-emerald hover:bg-slate-50 rounded-2xl transition-all flex items-center gap-1 group">
+                  <ChevronLeft className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
+                  <span className="hidden sm:inline text-xs font-black uppercase tracking-tight">Back</span>
+                </button>
                 <div className="w-12 h-12 md:w-16 md:h-16 rounded-[1.5rem] bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200 shadow-sm transition-transform active:scale-95"><User className="w-6 h-6 md:w-8 md:h-8" /></div>
                 <div>
                   <h3 className="font-black text-slate-800 tracking-tight" style={{ fontSize: `${1.2 * chatScale}rem` }}>{activeChat.receiverName}</h3>

@@ -151,7 +151,7 @@ export default function Home() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-10 text-sm font-semibold text-slate-600">
-            <Link href="/" className="hover:text-slate-900 transition-colors">Home</Link>
+
 
             <Link href="#about" className="hover:text-slate-900 transition-colors">About</Link>
           </nav>
@@ -178,7 +178,7 @@ export default function Home() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-uiu-emerald opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-uiu-emerald"></span>
             </span>
-            UIU's Premier Resource Exchange Platform
+            UIU's Premier Resource Share & Campaign Platform
           </motion.div>
 
           <motion.h1

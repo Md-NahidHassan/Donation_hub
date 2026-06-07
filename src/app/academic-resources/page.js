@@ -358,40 +358,40 @@ export default function AcademicResourcesPage() {
       </div>
 
       {/* MAIN */}
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-8 md:py-12 pb-28">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 py-4 pb-20">
 
         {/* Back */}
-        <header className="mb-10">
+        <header className="mb-4">
           <Link href="/dashboard"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/50 backdrop-blur-md border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-slate-700 font-bold hover:bg-white/90 hover:text-slate-900 transition-all group w-max">
-            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/50 backdrop-blur-md border border-white/80 shadow text-slate-700 font-bold hover:bg-white/90 hover:text-slate-900 transition-all group w-max text-xs">
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             Back to Dashboard
           </Link>
         </header>
 
         {/* PAGE HERO */}
         <motion.div initial={{ opacity:0, y:24 }} animate={{ opacity:1, y:0 }}
-          className="mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+          className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-3 bg-white/60 backdrop-blur-md rounded-2xl border border-white shadow-sm">
-                <GraduationCap className="w-6 h-6 text-uiu-emerald" />
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-2 bg-white/60 backdrop-blur-md rounded-xl border border-white shadow-sm">
+                <GraduationCap className="w-4 h-4 text-uiu-emerald" />
               </div>
-              <span className="text-xs font-black text-uiu-emerald uppercase tracking-widest px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200">
+              <span className="text-[10px] font-black text-uiu-emerald uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200">
                 Academic Hub
               </span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight">
               Your Shared<br className="hidden sm:block" /> Resources
             </h1>
-            <p className="text-slate-500 font-medium mt-3 text-lg max-w-lg">
+            <p className="text-slate-500 font-medium mt-2 text-sm max-w-lg">
               Manage the academic items you have contributed to the UIU community.
             </p>
           </div>
           <motion.button whileHover={{ scale:1.04 }} whileTap={{ scale:0.96 }}
             onClick={() => setIsPosting(true)}
-            className="shrink-0 flex items-center gap-2 px-6 py-3.5 rounded-2xl font-black text-white bg-uiu-emerald hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 transition-all">
-            <Plus className="w-5 h-5" /> Share New Resource
+            className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-black text-white text-sm bg-uiu-emerald hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 transition-all">
+            <Plus className="w-4 h-4" /> Share New Resource
           </motion.button>
         </motion.div>
 
@@ -498,7 +498,7 @@ export default function AcademicResourcesPage() {
         </AnimatePresence>
 
         {/* STATS ROW */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           {[
             { label: "Total Posts", value: counts.All,      color: "text-slate-700",   bg: "bg-white/60"     },
             { label: "Live",        value: counts.Approved, color: "text-uiu-emerald", bg: "bg-emerald-50/60" },
@@ -506,25 +506,25 @@ export default function AcademicResourcesPage() {
             { label: "Rejected",    value: counts.Rejected, color: "text-rose-600",    bg: "bg-rose-50/60"    },
           ].map((s, i) => (
             <motion.div key={s.label} initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay: i * 0.07 }}
-              className={`${s.bg} backdrop-blur-xl border border-white/80 rounded-[1.5rem] p-5 shadow-sm`}>
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{s.label}</p>
-              <p className={`text-3xl font-black ${s.color}`}>{s.value}</p>
+              className={`${s.bg} backdrop-blur-xl border border-white/80 rounded-2xl p-3 shadow-sm`}>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{s.label}</p>
+              <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
             </motion.div>
           ))}
         </div>
 
         {/* FILTERS + SEARCH */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1 group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-uiu-emerald transition-colors" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-uiu-emerald transition-colors" />
             <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
               placeholder="Search your resources..."
-              className="w-full pl-12 pr-4 py-3.5 rounded-full bg-white/60 backdrop-blur-md border border-white focus:border-uiu-emerald focus:ring-4 focus:ring-uiu-emerald/10 outline-none transition-all placeholder:text-slate-400 text-slate-800 font-bold shadow-sm" />
+              className="w-full pl-10 pr-4 py-2.5 text-sm rounded-full bg-white/60 backdrop-blur-md border border-white focus:border-uiu-emerald focus:ring-4 focus:ring-uiu-emerald/10 outline-none transition-all placeholder:text-slate-400 text-slate-800 font-bold shadow-sm" />
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
             {["All","Approved","Pending","Rejected"].map((f) => (
               <button key={f} onClick={() => setFilter(f)}
-                className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all ${
+                className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${
                   filter === f ? "bg-uiu-emerald text-white shadow-md shadow-emerald-500/20" : "bg-white/60 text-slate-500 border border-white hover:bg-white"
                 }`}>
                 {f}
@@ -535,7 +535,7 @@ export default function AcademicResourcesPage() {
 
         {/* RESOURCE GRID */}
         {displayed.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             <AnimatePresence>
               {displayed.map((item, i) => {
                 const Icon = iconMap[item.icon] || Package;
@@ -552,101 +552,101 @@ export default function AcademicResourcesPage() {
                   <motion.div key={item.id}
                     initial={{ opacity:0, scale:0.94 }} animate={{ opacity:1, scale:1 }}
                     exit={{ opacity:0, scale:0.9 }} transition={{ delay: i * 0.06 }} layout>
-                    <motion.div whileHover={{ y: -8 }}
-                      className="group bg-white/60 backdrop-blur-xl rounded-[2rem] border border-white/80 shadow-sm hover:shadow-xl transition-all flex flex-col h-full overflow-hidden">
+                    <motion.div whileHover={{ y: -4 }}
+                      className="group bg-white/60 backdrop-blur-xl rounded-2xl border border-white/80 shadow-sm hover:shadow-xl transition-all flex flex-col h-full overflow-hidden">
 
                       {/* Icon area */}
-                      <div className="h-48 relative flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-uiu-emerald/10 blur-3xl rounded-full" />
-                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-uiu-orange/10 blur-3xl rounded-full" />
+                      <div className="h-28 relative flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-uiu-emerald/10 blur-2xl rounded-full" />
+                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-uiu-orange/10 blur-2xl rounded-full" />
 
                         <motion.div whileHover={{ scale:1.1, rotate:3 }} transition={{ type:"spring", stiffness:300 }}
-                          className="relative z-10 p-5 bg-white/70 rounded-2xl shadow-md backdrop-blur-sm">
-                          <Icon className="w-10 h-10 text-uiu-emerald" />
+                          className="relative z-10 p-3 bg-white/70 rounded-xl shadow backdrop-blur-sm">
+                          <Icon className="w-8 h-8 text-uiu-emerald" />
                         </motion.div>
 
                         {/* Condition badge */}
-                        <div className="absolute top-4 left-4 z-20">
-                          <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-wider shadow-sm ${cond.badge}`}>
+                        <div className="absolute top-3 left-3 z-20">
+                          <span className={`px-2 py-0.5 text-[9px] font-black rounded-md uppercase tracking-wider shadow-sm ${cond.badge}`}>
                             {item.condition}
                           </span>
                         </div>
 
                         {/* File type badge – top right */}
                         {fileCat && fileCols && (
-                          <div className="absolute top-4 right-4 z-20">
-                            <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${fileCols.bg} border ${fileCols.border} shadow-sm`}>
-                              <FileIcon category={fileCat} className={`w-3 h-3 ${fileCols.text}`} />
-                              <span className={`text-[9px] font-black uppercase tracking-wider ${fileCols.text}`}>{fileCols.label}</span>
+                          <div className="absolute top-3 right-3 z-20">
+                            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md ${fileCols.bg} border ${fileCols.border} shadow-sm`}>
+                              <FileIcon category={fileCat} className={`w-2.5 h-2.5 ${fileCols.text}`} />
+                              <span className={`text-[8px] font-black uppercase tracking-wider ${fileCols.text}`}>{fileCols.label}</span>
                             </div>
                           </div>
                         )}
                         {/* Download icon if has file but no fileType */}
                         {(item.downloadUrl || item.fileName) && !fileCat && (
-                          <div className="absolute top-4 right-4 z-20">
+                          <div className="absolute top-3 right-3 z-20">
                             <a 
                               href={item.downloadUrl || `http://localhost:8080/api/resources/download/${item.fileName}`}
                               download={item.fileName || "resource"}
                               onClick={(e) => e.stopPropagation()}
-                              className="p-1.5 bg-white/80 backdrop-blur-sm rounded-lg shadow-sm text-uiu-emerald hover:bg-white hover:scale-110 transition-all block"
+                              className="p-1 bg-white/80 backdrop-blur-sm rounded-md shadow-sm text-uiu-emerald hover:bg-white hover:scale-110 transition-all block"
                             >
-                              <Download className="w-3.5 h-3.5" />
+                              <Download className="w-3 h-3" />
                             </a>
                           </div>
                         )}
                       </div>
 
                       {/* Card body */}
-                      <div className="p-5 flex-1 flex flex-col bg-white/80 border-t border-white">
-                        <div className="flex items-center gap-1.5 text-xs font-black text-uiu-orange mb-2">
-                          <Tag className="w-3.5 h-3.5" />
+                      <div className="p-4 flex-1 flex flex-col bg-white/80 border-t border-white">
+                        <div className="flex items-center gap-1 text-[10px] font-black text-uiu-orange mb-1.5">
+                          <Tag className="w-3 h-3" />
                           {item.subject}
                         </div>
-                        <h3 className="text-lg font-black text-slate-900 leading-snug mb-1 line-clamp-2">{item.title}</h3>
+                        <h3 className="text-base font-black text-slate-900 leading-snug mb-1 line-clamp-2">{item.title}</h3>
 
                         {item.description && (
-                          <p className="text-xs text-slate-400 font-medium line-clamp-2 mb-3 leading-relaxed">{item.description}</p>
+                          <p className="text-[10px] text-slate-400 font-medium line-clamp-2 mb-2 leading-relaxed">{item.description}</p>
                         )}
 
                         {/* File name if uploaded */}
                         {item.fileName && (
-                          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border w-full mb-3 ${fileCols?.bg || "bg-slate-50"} ${fileCols?.border || "border-slate-100"}`}>
-                            <Paperclip className={`w-3 h-3 shrink-0 ${fileCols?.text || "text-slate-400"}`} />
-                            <span className={`text-[10px] font-black truncate ${fileCols?.text || "text-slate-500"}`}>{item.fileName}</span>
+                          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border w-full mb-2 ${fileCols?.bg || "bg-slate-50"} ${fileCols?.border || "border-slate-100"}`}>
+                            <Paperclip className={`w-2.5 h-2.5 shrink-0 ${fileCols?.text || "text-slate-400"}`} />
+                            <span className={`text-[9px] font-black truncate ${fileCols?.text || "text-slate-500"}`}>{item.fileName}</span>
                           </div>
                         )}
 
                         {/* Status pill */}
-                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border w-max mb-4 ${sSt}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${cond.dot}`} />
+                        <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border w-max mb-3 ${sSt}`}>
+                          <span className={`w-1 h-1 rounded-full ${cond.dot}`} />
                           {item.status?.toLowerCase() === "approved" ? "Live in Marketplace" : item.status}
                         </div>
 
-                        <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mb-4 flex items-center gap-1.5">
-                          <Clock className="w-3 h-3" /> Posted: {item.postedDate || "Recent"}
+                        <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-3 flex items-center gap-1">
+                          <Clock className="w-2.5 h-2.5" /> Posted: {item.postedDate || "Recent"}
                         </p>
 
-                        <div className="mt-auto flex gap-2">
+                        <div className="mt-auto flex gap-1.5">
                           {item.status?.toLowerCase() === "approved" ? (
                             <Link href={`/item-details?id=${item.id}`}
-                              className="flex-1 py-3 rounded-xl font-black text-white text-sm bg-uiu-emerald hover:bg-emerald-600 shadow-md transition-all flex items-center justify-center gap-1.5">
-                              View Item <ArrowUpRight className="w-3.5 h-3.5" />
+                              className="flex-1 py-2 rounded-xl font-black text-white text-xs bg-uiu-emerald hover:bg-emerald-600 shadow-md transition-all flex items-center justify-center gap-1">
+                              View Item <ArrowUpRight className="w-3 h-3" />
                             </Link>
                           ) : (
                             <button disabled
-                              className="flex-1 py-3 rounded-xl font-black text-slate-400 text-sm bg-slate-50 border border-slate-100 cursor-not-allowed flex items-center justify-center gap-1.5">
+                              className="flex-1 py-2 rounded-xl font-black text-slate-400 text-xs bg-slate-50 border border-slate-100 cursor-not-allowed flex items-center justify-center gap-1">
                               {item.status?.toLowerCase() === "pending"
-                                ? <><Clock className="w-3.5 h-3.5 animate-pulse" /> Pending</>
-                                : <><XCircle className="w-3.5 h-3.5 text-rose-400" /> Rejected</>}
+                                ? <><Clock className="w-3 h-3 animate-pulse" /> Pending</>
+                                : <><XCircle className="w-3 h-3 text-rose-400" /> Rejected</>}
                             </button>
                           )}
                           
                           {/* Only show delete if the item belongs to the current user */}
                           {(item.postedBy === (localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")).fullName : "Md. Nahid Hassan")) && (
                             <button onClick={() => handleDelete(item.id)}
-                              className="p-3 rounded-xl bg-slate-50 text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all border border-slate-100 opacity-0 group-hover:opacity-100"
+                              className="p-2 rounded-xl bg-slate-50 text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all border border-slate-100 opacity-0 group-hover:opacity-100"
                               title="Delete post">
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3 h-3" />
                             </button>
                           )}
                         </div>
@@ -685,11 +685,11 @@ export default function AcademicResourcesPage() {
         {/* TIP BANNER */}
         {allItems.length > 0 && (
           <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.5 }}
-            className="mt-12 p-5 rounded-[1.5rem] bg-amber-50/70 border border-amber-100 flex items-start gap-4">
-            <div className="p-2.5 bg-amber-100 rounded-xl text-amber-600 shrink-0">
-              <AlertCircle className="w-5 h-5" />
+            className="mt-8 p-4 rounded-2xl bg-amber-50/70 border border-amber-100 flex items-start gap-3">
+            <div className="p-2 bg-amber-100 rounded-xl text-amber-600 shrink-0">
+              <AlertCircle className="w-4 h-4" />
             </div>
-            <p className="text-sm font-medium text-amber-800/80 leading-relaxed">
+            <p className="text-[11px] font-medium text-amber-800/80 leading-relaxed">
               <span className="font-black">Tip:</span> Each approved resource earns you{" "}
               <span className="font-black">+50 Eco-Points</span>. Every download earns an extra{" "}
               <span className="font-black">+10 Eco-Points</span>!

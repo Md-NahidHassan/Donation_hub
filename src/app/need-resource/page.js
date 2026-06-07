@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Plus, Filter, Heart, ArrowUpRight, Flame, User, Droplets, MapPin, X, ArrowLeft, ImagePlus, MessageCircle, Eye, Rocket, CheckCircle2, PackageSearch, HandHeart, AlertCircle, Trash2, Edit2 } from "lucide-react";
 import Link from "next/link";
+import UserAvatar from "@/components/UserAvatar";
 
 const API = "http://localhost:8080/api/need-resource";
 
@@ -215,8 +216,8 @@ export default function NeedResourcePage() {
                     
                     <div className="mt-auto pt-6 border-t border-slate-100/50 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs ring-2 ring-white shadow-sm">
-                          {item.postedBy.charAt(0).toUpperCase()}
+                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs ring-2 ring-white shadow-sm overflow-hidden">
+                          <UserAvatar email={item.postedByEmail} name={item.postedBy} className="w-full h-full" iconClassName="w-4 h-4" fallbackIsImage={true} />
                         </div>
                         <div className="flex flex-col">
                           <span className="text-xs font-black text-slate-800 line-clamp-1">{item.postedBy}</span>
