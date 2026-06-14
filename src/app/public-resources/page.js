@@ -323,10 +323,12 @@ export default function PublicResourcesPage() {
                             className="flex-1 py-2 rounded-xl font-black text-white text-xs bg-uiu-emerald hover:bg-emerald-600 shadow-md transition-all flex items-center justify-center gap-1">
                             View Item <ArrowUpRight className="w-3 h-3" />
                           </Link>
-                          <button onClick={() => handleDelete(item.id)}
-                            className="p-2 rounded-xl bg-slate-50 text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all border border-slate-100">
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                          {((currentUser && item.userEmail === currentUser.email) || (currentUser && currentUser.fullName && item.postedBy === currentUser.fullName) || (currentUser && currentUser.username && item.postedBy === currentUser.username)) && (
+                            <button onClick={() => handleDelete(item.id)}
+                              className="p-2 rounded-xl bg-slate-50 text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all border border-slate-100">
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </motion.div>

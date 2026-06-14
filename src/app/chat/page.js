@@ -83,13 +83,19 @@ function ChatContent() {
       collection(db, "chatRooms", activeChat.id, "messages"),
       orderBy("timestamp", "asc")
     );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setMessages(msgs);
-      setTimeout(() => {
-        scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setMessages(msgs);
+        setTimeout(() => {
+          scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      },
+      (error) => {
+        console.warn("Firestore snapshot error [messages]:", error);
+      }
+    );
     return () => unsubscribe();
   }, [activeChat?.id]);
 
@@ -103,11 +109,17 @@ function ChatContent() {
       ? query(collection(db, "chatRooms"), where("participants", "array-contains-any", [myId, "ECO_ADMIN"]))
       : query(collection(db, "chatRooms"), where("participants", "array-contains", myId));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const convs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      convs.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
-      setConversations(convs);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const convs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        convs.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
+        setConversations(convs);
+      },
+      (error) => {
+        console.warn("Firestore snapshot error [conversations]:", error);
+      }
+    );
     return () => unsubscribe();
   }, [currentUser]);
 

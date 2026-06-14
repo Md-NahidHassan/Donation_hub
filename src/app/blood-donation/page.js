@@ -36,7 +36,7 @@ export default function BloodDonationPage() {
   const [newRequest, setNewRequest] = useState({
     patientName: "",
     bloodGroup: "O+",
-    contactPhone: "",
+    contactNumber: "",
     hospitalName: "",
     details: "",
     urgent: false
@@ -74,7 +74,7 @@ export default function BloodDonationPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!newRequest.patientName || !newRequest.bloodGroup || !newRequest.contactPhone || !newRequest.hospitalName) {
+    if (!newRequest.patientName || !newRequest.bloodGroup || !newRequest.contactNumber || !newRequest.hospitalName) {
       alert("Name, Blood Group, Phone, and Hospital are required!");
       return;
     }
@@ -82,8 +82,9 @@ export default function BloodDonationPage() {
 
     const payload = {
       ...newRequest,
+      reason: newRequest.details,
       location: newRequest.hospitalName,
-      requestedBy: currentUser?.fullName || currentUser?.name || "Anonymous",
+      postedBy: currentUser?.fullName || currentUser?.name || "Anonymous",
       postedByEmail: currentUser?.email || localStorage.getItem("userEmail") || ""
     };
 
@@ -99,7 +100,7 @@ export default function BloodDonationPage() {
       if (res.ok) {
         setShowModal(false);
         setEditingId(null);
-        setNewRequest({ patientName: "", bloodGroup: "O+", contactPhone: "", hospitalName: "", details: "", urgent: false });
+        setNewRequest({ patientName: "", bloodGroup: "O+", contactNumber: "", hospitalName: "", details: "", urgent: false });
         loadData();
       } else {
         alert("Failed to save request.");
@@ -112,11 +113,11 @@ export default function BloodDonationPage() {
 
   const handleEditClick = (item) => {
     setNewRequest({
-      patientName: item.patientName || item.requestedBy || "",
+      patientName: item.patientName || "",
       bloodGroup: item.bloodGroup || "O+",
-      contactPhone: item.contactPhone || "",
+      contactNumber: item.contactNumber || "",
       hospitalName: item.location || item.hospitalName || "",
-      details: item.details || "",
+      details: item.reason || item.details || "",
       urgent: item.urgent || false
     });
     setEditingId(item.id);
@@ -176,7 +177,7 @@ export default function BloodDonationPage() {
               Find donors or request blood for medical emergencies. Save a life today.
             </p>
           </div>
-          <button onClick={() => { setEditingId(null); setNewRequest({ patientName: "", bloodGroup: "O+", contactPhone: "", hospitalName: "", details: "", urgent: false }); setShowModal(true); }} className="px-8 py-4 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-2xl font-black shadow-xl shadow-red-500/30 flex items-center gap-3 transition-all hover:scale-105 active:scale-95 shrink-0">
+          <button onClick={() => { setEditingId(null); setNewRequest({ patientName: "", bloodGroup: "O+", contactNumber: "", hospitalName: "", details: "", urgent: false }); setShowModal(true); }} className="px-8 py-4 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-2xl font-black shadow-xl shadow-red-500/30 flex items-center gap-3 transition-all hover:scale-105 active:scale-95 shrink-0">
             <Plus className="w-5 h-5 bg-white/20 rounded-full p-1" /> Request Blood
           </button>
         </header>
@@ -225,7 +226,7 @@ export default function BloodDonationPage() {
                        <span className={`w-max px-3 py-1 rounded-full text-white text-[10px] font-black uppercase tracking-widest ${bgBadgeColor}`}>
                          {item.bloodGroup} Blood Needed
                        </span>
-                       <h3 className="text-xl font-black text-slate-900 leading-tight line-clamp-2">Patient: {item.patientName || item.requestedBy}</h3>
+                       <h3 className="text-xl font-black text-slate-900 leading-tight line-clamp-2">Patient: {item.patientName || "Unknown"}</h3>
                     </div>
                     {item.urgent && (
                        <div className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shrink-0 shadow-sm bg-rose-500 text-white animate-pulse">
@@ -242,14 +243,14 @@ export default function BloodDonationPage() {
                         </div>
                         <div className="flex items-start gap-2">
                            <Phone className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                           <p className="text-slate-600 font-bold text-sm">{item.contactPhone || "Not Provided"}</p>
+                           <p className="text-slate-600 font-bold text-sm">{item.contactNumber || "Not Provided"}</p>
                         </div>
                     </div>
                     
                     <div className="mt-auto pt-6 border-t border-slate-100/50 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="flex flex-col">
-                          <span className="text-xs font-black text-slate-800 line-clamp-1">Req. By: {item.requestedBy || item.patientName}</span>
+                          <span className="text-xs font-black text-slate-800 line-clamp-1">Req. By: {item.postedBy || item.patientName}</span>
                           <span className="text-[9px] font-bold text-slate-400 uppercase">{formatRelativeTime(item.createdAt || item.postedDate)}</span>
                         </div>
                       </div>
@@ -324,7 +325,7 @@ export default function BloodDonationPage() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Contact Phone</label>
-                    <input type="text" value={newRequest.contactPhone} onChange={e => setNewRequest({ ...newRequest, contactPhone: e.target.value })}
+                    <input type="text" value={newRequest.contactNumber} onChange={e => setNewRequest({ ...newRequest, contactNumber: e.target.value })}
                       placeholder="Required"
                       className="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none font-bold text-slate-800 focus:bg-white focus:border-red-400 focus:ring-4 focus:ring-red-400/10 transition-all" />
                   </div>

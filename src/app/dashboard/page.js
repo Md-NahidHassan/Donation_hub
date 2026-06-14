@@ -276,10 +276,16 @@ function DashboardContent() {
       where("participants", "array-contains", myId)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const unread = snapshot.docs.some(doc => doc.data().unreadBy?.includes(myId));
-      setHasUnread(unread);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const unread = snapshot.docs.some(doc => doc.data().unreadBy?.includes(myId));
+        setHasUnread(unread);
+      },
+      (error) => {
+        console.warn("Firestore snapshot error:", error);
+      }
+    );
 
     return () => unsubscribe();
   }, []);
@@ -490,8 +496,8 @@ function DashboardContent() {
                             key={notif.id}
                             href={
                               notif.postType === "BLOOD_DONATION" ? `/blood-donation-details?id=${notif.postId}`
-                              : notif.postType === "ACADEMIC" ? `/resource-details?id=${notif.postId}`
-                              : notif.postType === "PUBLIC" ? `/item-details?id=${notif.postId}`
+                              : notif.postType === "ACADEMIC" ? `/item-details?id=${notif.postId}`
+                              : notif.postType === "PUBLIC" ? `/resource-details?id=${notif.postId}&type=public`
                               : notif.postType === "NEED_RESOURCE" ? `/need-resource-details?id=${notif.postId}`
                               : notif.postType === "CAMPAIGN" ? `/campaign-details?id=${notif.postId}`
                               : "#"
@@ -983,7 +989,7 @@ function DashboardContent() {
           </div>
 
           {/* ACTIVE CAMPAIGNS SECTION */}
-          <div className="mt-6">
+          <div className="mt-6 mb-6">
             <div className="flex justify-between items-end mb-6">
               <div>
                 <h3 className="text-xl font-black text-slate-900 tracking-tight">Active Campaigns</h3>

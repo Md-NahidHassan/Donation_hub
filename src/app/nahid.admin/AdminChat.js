@@ -38,11 +38,17 @@ export default function AdminChat({ currentUser }) {
       collection(db, "chatRooms"),
       where("participants", "array-contains", "ECO_ADMIN")
     );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const convs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      convs.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
-      setConversations(convs);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const convs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        convs.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
+        setConversations(convs);
+      },
+      (error) => {
+        console.warn("Firestore snapshot error [admin rooms]:", error);
+      }
+    );
     return () => unsubscribe();
   }, []);
 

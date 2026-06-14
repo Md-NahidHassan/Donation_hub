@@ -274,7 +274,7 @@ function BloodDonationDetailsContent() {
                                           <div className="p-2 bg-rose-50 rounded-lg text-rose-500"><Phone className="w-4 h-4"/></div>
                                           <div>
                                               <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Contact Phone</p>
-                                              <p className="font-bold text-slate-800 text-sm">{item.contactPhone || "Not provided"}</p>
+                                              <p className="font-bold text-slate-800 text-sm">{item.contactNumber || "Not provided"}</p>
                                           </div>
                                       </div>
                                       <div className="flex items-center gap-3">
@@ -285,10 +285,11 @@ function BloodDonationDetailsContent() {
                                           </div>
                                       </div>
                                       
-                                      {item.details && (
+                                      {(item.reason || item.details) && (
                                         <div className="mt-3 pt-3 border-t border-slate-200/50">
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Description</p>
                                             <p className="text-slate-600 font-medium leading-relaxed text-sm whitespace-pre-wrap">
-                                                {item.details}
+                                                {item.reason || item.details}
                                             </p>
                                         </div>
                                       )}
@@ -404,10 +405,10 @@ function BloodDonationDetailsContent() {
                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-3">Requested By</p>
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-red-100 to-rose-100 border border-white shadow-inner text-red-500 shrink-0 overflow-hidden">
-                                        <UserAvatar email={item.postedByEmail} name={item.requestedBy || item.patientName} className="w-full h-full" iconClassName="w-5 h-5" />
+                                        <UserAvatar email={item.postedByEmail} name={item.postedBy || item.patientName} className="w-full h-full" iconClassName="w-5 h-5" />
                                     </div>
                                     <div className="flex-1">
-                                        <h3 className="font-black text-slate-800 text-sm leading-tight">{item.requestedBy || item.patientName}</h3>
+                                        <h3 className="font-black text-slate-800 text-sm leading-tight">{item.postedBy || item.patientName}</h3>
                                         <div className="flex items-center gap-1 text-emerald-500 font-bold text-[10px] mt-0.5">
                                             <CheckCircle2 className="w-3.5 h-3.5" />
                                             Active Member
@@ -444,7 +445,7 @@ function BloodDonationDetailsContent() {
                                             <Trash2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" /> Delete Request
                                         </button>
                                     ) : (
-                                        <Link href={`/chat?receiver=${encodeURIComponent(item.requestedBy)}&receiverEmail=${item.postedByEmail || ""}&item=${encodeURIComponent("Regarding Blood Request: " + item.bloodGroup)}`} className="w-full py-2.5 bg-red-600 text-white font-black rounded-lg shadow-md shadow-red-500/20 flex items-center justify-center gap-2 hover:bg-red-700 transition-all text-xs group">
+                                        <Link href={`/chat?receiver=${encodeURIComponent(item.postedBy || "User")}&receiverEmail=${item.postedByEmail || ""}&item=${encodeURIComponent("Regarding Blood Request: " + item.bloodGroup)}`} className="w-full py-2.5 bg-red-600 text-white font-black rounded-lg shadow-md shadow-red-500/20 flex items-center justify-center gap-2 hover:bg-red-700 transition-all text-xs group">
                                             <MessageCircle className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" /> Coordinate Privately
                                         </Link>
                                     )}

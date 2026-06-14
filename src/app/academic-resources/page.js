@@ -16,16 +16,16 @@ import { mockDb } from "@/utils/mockDb";
 const iconMap = { BookOpen, Package, Star, Activity };
 
 const conditionColor = {
-  "Excellent": { badge: "bg-emerald-500 text-white",  dot: "bg-emerald-400" },
-  "Brand New": { badge: "bg-indigo-500 text-white",   dot: "bg-indigo-400"  },
-  "Like New":  { badge: "bg-sky-500 text-white",      dot: "bg-sky-400"     },
-  "Good":      { badge: "bg-amber-500 text-white",    dot: "bg-amber-400"   },
-  "Fair":      { badge: "bg-rose-500 text-white",     dot: "bg-rose-400"    },
+  "Excellent": { badge: "bg-emerald-500 text-white", dot: "bg-emerald-400" },
+  "Brand New": { badge: "bg-indigo-500 text-white", dot: "bg-indigo-400" },
+  "Like New": { badge: "bg-sky-500 text-white", dot: "bg-sky-400" },
+  "Good": { badge: "bg-amber-500 text-white", dot: "bg-amber-400" },
+  "Fair": { badge: "bg-rose-500 text-white", dot: "bg-rose-400" },
 };
 
 const statusStyle = {
   Approved: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  Pending:  "bg-amber-50  text-amber-700  border-amber-200",
+  Pending: "bg-amber-50  text-amber-700  border-amber-200",
   Rejected: "bg-rose-50   text-rose-700   border-rose-200",
 };
 
@@ -49,18 +49,18 @@ function FileIcon({ category, className = "w-6 h-6" }) {
     image: <Image className={className} />,
     audio: <Music className={className} />,
     video: <Video className={className} />,
-    pdf:   <FileText className={className} />,
-    file:  <File className={className} />,
+    pdf: <FileText className={className} />,
+    file: <File className={className} />,
   };
   return icons[category] || icons.file;
 }
 
 const categoryColors = {
   image: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-600", label: "Image" },
-  audio: { bg: "bg-pink-50",   border: "border-pink-200",   text: "text-pink-600",   label: "Audio" },
-  video: { bg: "bg-blue-50",   border: "border-blue-200",   text: "text-blue-600",   label: "Video" },
-  pdf:   { bg: "bg-rose-50",   border: "border-rose-200",   text: "text-rose-600",   label: "PDF"   },
-  file:  { bg: "bg-slate-50",  border: "border-slate-200",  text: "text-slate-600",  label: "File"  },
+  audio: { bg: "bg-pink-50", border: "border-pink-200", text: "text-pink-600", label: "Audio" },
+  video: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-600", label: "Video" },
+  pdf: { bg: "bg-rose-50", border: "border-rose-200", text: "text-rose-600", label: "PDF" },
+  file: { bg: "bg-slate-50", border: "border-slate-200", text: "text-slate-600", label: "File" },
 };
 
 // ── File Upload Zone Component ─────────────────────────────────────────────────
@@ -117,11 +117,10 @@ function FileUploadZone({ uploadedFile, onFileSelect, onFileRemove }) {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onClick={() => inputRef.current?.click()}
-      className={`w-full mt-1 rounded-xl border-2 border-dashed transition-all cursor-pointer p-6 flex flex-col items-center justify-center gap-3 group ${
-        isDragging
-          ? "border-uiu-emerald bg-emerald-50/80 scale-[1.01]"
-          : "border-slate-200 bg-slate-50/60 hover:border-uiu-emerald/60 hover:bg-emerald-50/30"
-      }`}
+      className={`w-full mt-1 rounded-xl border-2 border-dashed transition-all cursor-pointer p-6 flex flex-col items-center justify-center gap-3 group ${isDragging
+        ? "border-uiu-emerald bg-emerald-50/80 scale-[1.01]"
+        : "border-slate-200 bg-slate-50/60 hover:border-uiu-emerald/60 hover:bg-emerald-50/30"
+        }`}
     >
       <input
         ref={inputRef}
@@ -144,11 +143,11 @@ function FileUploadZone({ uploadedFile, onFileSelect, onFileRemove }) {
       {/* File type badges */}
       <div className="flex items-center gap-1.5 flex-wrap justify-center mt-1">
         {[
-          { label: "PDF",   col: "bg-rose-100 text-rose-600"   },
+          { label: "PDF", col: "bg-rose-100 text-rose-600" },
           { label: "Image", col: "bg-purple-100 text-purple-600" },
-          { label: "Audio", col: "bg-pink-100 text-pink-600"   },
-          { label: "Video", col: "bg-blue-100 text-blue-600"   },
-          { label: "DOC",   col: "bg-indigo-100 text-indigo-600" },
+          { label: "Audio", col: "bg-pink-100 text-pink-600" },
+          { label: "Video", col: "bg-blue-100 text-blue-600" },
+          { label: "DOC", col: "bg-indigo-100 text-indigo-600" },
         ].map(({ label, col }) => (
           <span key={label} className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${col}`}>
             {label}
@@ -162,9 +161,9 @@ function FileUploadZone({ uploadedFile, onFileSelect, onFileRemove }) {
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export default function AcademicResourcesPage() {
   const [isMounted, setIsMounted] = useState(false);
-  const [allItems,  setAllItems]  = useState([]);
-  const [search,    setSearch]    = useState("");
-  const [filter,    setFilter]    = useState("All");
+  const [allItems, setAllItems] = useState([]);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("All");
   const [isPosting, setIsPosting] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null);   // File object
   const [blobUrl, setBlobUrl] = useState(null);              // Object URL
@@ -187,7 +186,7 @@ export default function AcademicResourcesPage() {
       const res = await fetch(API_BASE_URL); // Fetch ALL resources
       if (res.ok) {
         const data = await res.json();
-        
+
         // Filter: Show all Approved, but only show Pending/Rejected if they belong to the current user
         const visibleItems = data.filter(it => {
           if (it.status === "Approved") return true;
@@ -249,11 +248,11 @@ export default function AcademicResourcesPage() {
 
     try {
       const userStr = localStorage.getItem("user");
-      const user = userStr ? JSON.parse(userStr) : { 
-        fullName: "Md. Nahid Hassan", 
-        email: localStorage.getItem("userEmail") || "nhassan231467@bscse.uiu.ac.bd" 
+      const user = userStr ? JSON.parse(userStr) : {
+        fullName: "Md. Nahid Hassan",
+        email: localStorage.getItem("userEmail") || "nhassan231467@bscse.uiu.ac.bd"
       };
-      
+
       const resourceData = {
         title: newItem.title,
         subject: newItem.subject,
@@ -326,9 +325,9 @@ export default function AcademicResourcesPage() {
   });
 
   const counts = {
-    All:      allItems.length,
+    All: allItems.length,
     Approved: allItems.filter(i => i.status?.toLowerCase() === "approved").length,
-    Pending:  allItems.filter(i => i.status?.toLowerCase() === "pending").length,
+    Pending: allItems.filter(i => i.status?.toLowerCase() === "pending").length,
     Rejected: allItems.filter(i => i.status?.toLowerCase() === "rejected").length,
   };
 
@@ -342,18 +341,18 @@ export default function AcademicResourcesPage() {
           <motion.div style={{ x: smoothX, y: smoothY }}
             className="absolute top-[-15vw] left-[-15vw] w-[30vw] h-[30vw] rounded-full bg-uiu-orange/15 blur-[120px] z-10" />
         )}
-        <motion.div animate={{ x:["0vw","30vw","-20vw","0vw"],y:["0vh","-20vh","30vh","0vh"],scale:[1,1.3,0.9,1] }}
-          transition={{ duration:18,repeat:Infinity,ease:"linear" }}
+        <motion.div animate={{ x: ["0vw", "30vw", "-20vw", "0vw"], y: ["0vh", "-20vh", "30vh", "0vh"], scale: [1, 1.3, 0.9, 1] }}
+          transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
           className="absolute top-[10%] left-[20%] w-[45vw] h-[45vw] rounded-[100%] bg-uiu-emerald/15 blur-[130px]" />
-        <motion.div animate={{ x:["0vw","-40vw","10vw","0vw"],y:["0vh","40vh","-10vh","0vh"],scale:[1,0.8,1.2,1] }}
-          transition={{ duration:22,repeat:Infinity,ease:"linear" }}
+        <motion.div animate={{ x: ["0vw", "-40vw", "10vw", "0vw"], y: ["0vh", "40vh", "-10vh", "0vh"], scale: [1, 0.8, 1.2, 1] }}
+          transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
           className="absolute top-[30%] right-[10%] w-[50vw] h-[50vw] rounded-[100%] bg-rose-500/10 blur-[140px]" />
-        <motion.div animate={{ x:["0vw","20vw","-30vw","0vw"],y:["0vh","20vh","-30vh","0vh"],scale:[1,1.2,0.8,1] }}
-          transition={{ duration:25,repeat:Infinity,ease:"linear" }}
+        <motion.div animate={{ x: ["0vw", "20vw", "-30vw", "0vw"], y: ["0vh", "20vh", "-30vh", "0vh"], scale: [1, 1.2, 0.8, 1] }}
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
           className="absolute bottom-[10%] left-[40%] w-[55vw] h-[55vw] rounded-[100%] bg-uiu-orange/15 blur-[150px]" />
         <div className="absolute inset-0 backdrop-blur-[60px] z-[-1]" />
-        <motion.div animate={{ backgroundPosition:["0px 0px","40px 40px"] }}
-          transition={{ duration:4,repeat:Infinity,ease:"linear" }}
+        <motion.div animate={{ backgroundPosition: ["0px 0px", "40px 40px"] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
           className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_100%_100%_at_50%_0%,#000_50%,transparent_120%)] opacity-50 z-[0]" />
       </div>
 
@@ -370,7 +369,7 @@ export default function AcademicResourcesPage() {
         </header>
 
         {/* PAGE HERO */}
-        <motion.div initial={{ opacity:0, y:24 }} animate={{ opacity:1, y:0 }}
+        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
           className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -388,7 +387,7 @@ export default function AcademicResourcesPage() {
               Manage the academic items you have contributed to the UIU community.
             </p>
           </div>
-          <motion.button whileHover={{ scale:1.04 }} whileTap={{ scale:0.96 }}
+          <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
             onClick={() => setIsPosting(true)}
             className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-black text-white text-sm bg-uiu-emerald hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 transition-all">
             <Plus className="w-4 h-4" /> Share New Resource
@@ -398,14 +397,14 @@ export default function AcademicResourcesPage() {
         {/* ── POST FORM MODAL ──────────────────────────────────────── */}
         <AnimatePresence>
           {isPosting && (
-            <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-sm"
               onClick={(e) => { if (e.target === e.currentTarget) handleCloseModal(); }}
             >
               <motion.form
-                initial={{ opacity:0, scale:0.92, y:24 }}
-                animate={{ opacity:1, scale:1, y:0 }}
-                exit={{ opacity:0, scale:0.92, y:24 }}
+                initial={{ opacity: 0, scale: 0.92, y: 24 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 24 }}
                 onSubmit={handlePost}
                 className="relative w-full max-w-lg bg-white/90 backdrop-blur-2xl rounded-[2rem] border border-white shadow-2xl p-8 max-h-[90vh] overflow-y-auto custom-scrollbar"
               >
@@ -442,7 +441,7 @@ export default function AcademicResourcesPage() {
                       <select value={newItem.subject}
                         onChange={(e) => setNewItem({ ...newItem, subject: e.target.value })}
                         className="w-full mt-1 px-5 py-3.5 rounded-xl bg-slate-50 border border-slate-100 outline-none font-bold text-slate-800 appearance-none focus:border-uiu-emerald transition-all">
-                        <option>CSE</option><option>EEE</option><option>Pharmacy</option>
+                        <option>CSE</option><option>BSDS</option><option>EEE</option><option>Pharmacy</option>
                         <option>Physics</option><option>Mathematics</option>
                         <option>Chemistry</option><option>Civil</option>
                         <option>BBA</option><option>General</option>
@@ -500,12 +499,12 @@ export default function AcademicResourcesPage() {
         {/* STATS ROW */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           {[
-            { label: "Total Posts", value: counts.All,      color: "text-slate-700",   bg: "bg-white/60"     },
-            { label: "Live",        value: counts.Approved, color: "text-uiu-emerald", bg: "bg-emerald-50/60" },
-            { label: "Pending",     value: counts.Pending,  color: "text-amber-600",   bg: "bg-amber-50/60"   },
-            { label: "Rejected",    value: counts.Rejected, color: "text-rose-600",    bg: "bg-rose-50/60"    },
+            { label: "Total Posts", value: counts.All, color: "text-slate-700", bg: "bg-white/60" },
+            { label: "Live", value: counts.Approved, color: "text-uiu-emerald", bg: "bg-emerald-50/60" },
+            { label: "Pending", value: counts.Pending, color: "text-amber-600", bg: "bg-amber-50/60" },
+            { label: "Rejected", value: counts.Rejected, color: "text-rose-600", bg: "bg-rose-50/60" },
           ].map((s, i) => (
-            <motion.div key={s.label} initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay: i * 0.07 }}
+            <motion.div key={s.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
               className={`${s.bg} backdrop-blur-xl border border-white/80 rounded-2xl p-3 shadow-sm`}>
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{s.label}</p>
               <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
@@ -522,11 +521,10 @@ export default function AcademicResourcesPage() {
               className="w-full pl-10 pr-4 py-2.5 text-sm rounded-full bg-white/60 backdrop-blur-md border border-white focus:border-uiu-emerald focus:ring-4 focus:ring-uiu-emerald/10 outline-none transition-all placeholder:text-slate-400 text-slate-800 font-bold shadow-sm" />
           </div>
           <div className="flex items-center gap-1.5 flex-wrap">
-            {["All","Approved","Pending","Rejected"].map((f) => (
+            {["All", "Approved", "Pending", "Rejected"].map((f) => (
               <button key={f} onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${
-                  filter === f ? "bg-uiu-emerald text-white shadow-md shadow-emerald-500/20" : "bg-white/60 text-slate-500 border border-white hover:bg-white"
-                }`}>
+                className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${filter === f ? "bg-uiu-emerald text-white shadow-md shadow-emerald-500/20" : "bg-white/60 text-slate-500 border border-white hover:bg-white"
+                  }`}>
                 {f}
               </button>
             ))}
@@ -550,8 +548,8 @@ export default function AcademicResourcesPage() {
 
                 return (
                   <motion.div key={item.id}
-                    initial={{ opacity:0, scale:0.94 }} animate={{ opacity:1, scale:1 }}
-                    exit={{ opacity:0, scale:0.9 }} transition={{ delay: i * 0.06 }} layout>
+                    initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }} transition={{ delay: i * 0.06 }} layout>
                     <motion.div whileHover={{ y: -4 }}
                       className="group bg-white/60 backdrop-blur-xl rounded-2xl border border-white/80 shadow-sm hover:shadow-xl transition-all flex flex-col h-full overflow-hidden">
 
@@ -560,7 +558,7 @@ export default function AcademicResourcesPage() {
                         <div className="absolute top-0 right-0 w-24 h-24 bg-uiu-emerald/10 blur-2xl rounded-full" />
                         <div className="absolute bottom-0 left-0 w-24 h-24 bg-uiu-orange/10 blur-2xl rounded-full" />
 
-                        <motion.div whileHover={{ scale:1.1, rotate:3 }} transition={{ type:"spring", stiffness:300 }}
+                        <motion.div whileHover={{ scale: 1.1, rotate: 3 }} transition={{ type: "spring", stiffness: 300 }}
                           className="relative z-10 p-3 bg-white/70 rounded-xl shadow backdrop-blur-sm">
                           <Icon className="w-8 h-8 text-uiu-emerald" />
                         </motion.div>
@@ -584,7 +582,7 @@ export default function AcademicResourcesPage() {
                         {/* Download icon if has file but no fileType */}
                         {(item.downloadUrl || item.fileName) && !fileCat && (
                           <div className="absolute top-3 right-3 z-20">
-                            <a 
+                            <a
                               href={item.downloadUrl || `http://localhost:8080/api/resources/download/${item.fileName}`}
                               download={item.fileName || "resource"}
                               onClick={(e) => e.stopPropagation()}
@@ -640,7 +638,7 @@ export default function AcademicResourcesPage() {
                                 : <><XCircle className="w-3 h-3 text-rose-400" /> Rejected</>}
                             </button>
                           )}
-                          
+
                           {/* Only show delete if the item belongs to the current user */}
                           {(item.postedBy === (localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")).fullName : "Md. Nahid Hassan")) && (
                             <button onClick={() => handleDelete(item.id)}
@@ -658,7 +656,7 @@ export default function AcademicResourcesPage() {
             </AnimatePresence>
           </div>
         ) : (
-          <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="flex flex-col items-center justify-center py-32 text-center gap-6">
             <div className="w-24 h-24 rounded-3xl bg-emerald-50 flex items-center justify-center shadow-sm">
               <FileText className="w-12 h-12 text-uiu-emerald/50" />
@@ -684,7 +682,7 @@ export default function AcademicResourcesPage() {
 
         {/* TIP BANNER */}
         {allItems.length > 0 && (
-          <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.5 }}
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
             className="mt-8 p-4 rounded-2xl bg-amber-50/70 border border-amber-100 flex items-start gap-3">
             <div className="p-2 bg-amber-100 rounded-xl text-amber-600 shrink-0">
               <AlertCircle className="w-4 h-4" />

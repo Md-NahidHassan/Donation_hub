@@ -76,9 +76,15 @@ function AdminInbox() {
   /* ── rooms listener ─────────────────────────────────────── */
   useEffect(() => {
     const q = query(collection(db, 'chatRooms'), where('participants', 'array-contains', ADMIN_ID));
-    const unsub = onSnapshot(q, snap => {
-      setRooms(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0)));
-    });
+    const unsub = onSnapshot(
+      q,
+      snap => {
+        setRooms(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0)));
+      },
+      (error) => {
+        console.warn("Firestore snapshot error [admin page rooms]:", error);
+      }
+    );
     return () => unsub();
   }, []);
 
@@ -86,10 +92,16 @@ function AdminInbox() {
   useEffect(() => {
     if (!activeRoom?.id) return;
     const q = query(collection(db, 'chatRooms', activeRoom.id, 'messages'), orderBy('timestamp', 'asc'));
-    const unsub = onSnapshot(q, snap => {
-      setMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-    });
+    const unsub = onSnapshot(
+      q,
+      snap => {
+        setMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      },
+      (error) => {
+        console.warn("Firestore snapshot error [admin page messages]:", error);
+      }
+    );
     // mark read
     if (activeRoom.unreadBy?.includes(ADMIN_ID)) {
       setDoc(doc(db, 'chatRooms', activeRoom.id), { unreadBy: (activeRoom.unreadBy || []).filter(x => x !== ADMIN_ID) }, { merge: true });
